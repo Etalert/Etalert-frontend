@@ -293,7 +293,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     try {
       await editScheduleService(
           scheduleId, name, date, startTime, endTime, isHaveEndTime);
-      await fetchSchedules();
+      await fetchAllSchedules();
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
