@@ -270,6 +270,7 @@ class _CalendarState extends ConsumerState<Calendar> {
       isHaveLocation: isHaveLocation,
       isFirstSchedule: isFirstSchedule,
       isTraveling: isTraveling,
+      recurrence: EnumRecurrence.weekly.value,
     );
     await ref.read(scheduleProvider(widget.googleId).notifier).addSchedule(req);
   }
