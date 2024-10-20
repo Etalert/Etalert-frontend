@@ -302,6 +302,7 @@ class _CalendarState extends ConsumerState<Calendar> {
       isHaveLocation: isHaveLocation,
       isFirstSchedule: isFirstSchedule,
       isTraveling: isTraveling,
+      recurrence: EnumRecurrence.weekly.value,
     );
     await ref.read(scheduleProvider(widget.googleId).notifier).addSchedule(req);
   }
@@ -496,14 +497,25 @@ class _CalendarState extends ConsumerState<Calendar> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete), // Trash bin icon
-              onPressed: () async {
-                await ref
-                    .read(scheduleProvider(widget.googleId).notifier)
-                    .deleteSchedule(event['groupId']);
-                Navigator.pop(context);
-              },
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () async {
+                    // Edit the event
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete), // Trash bin icon
+                  onPressed: () async {
+                    // Delete the event
+                    Navigator.pop(context);
+                    await ref
+                        .read(scheduleProvider(widget.googleId).notifier)
+                        .deleteSchedule(event['groupId']);
+                  },
+                ),
+              ],
             ),
           ],
         ),
