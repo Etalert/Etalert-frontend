@@ -143,7 +143,7 @@ class _CalendarState extends ConsumerState<Calendar> {
       fadeDuration: 3.0,
       enableNotificationOnKill: true,
     );
-    
+
     await Alarm.set(alarmSettings: alarmSettings);
     print('Alarm set for $dateTime with ID $id');
   }
@@ -302,7 +302,7 @@ class _CalendarState extends ConsumerState<Calendar> {
       isHaveLocation: isHaveLocation,
       isFirstSchedule: isFirstSchedule,
       isTraveling: isTraveling,
-      recurrence: EnumRecurrence.weekly.value,
+      recurrence: EnumRecurrence.none.value,
     );
     await ref.read(scheduleProvider(widget.googleId).notifier).addSchedule(req);
   }
@@ -356,12 +356,17 @@ class _CalendarState extends ConsumerState<Calendar> {
                   selectedDayPredicate: (day) {
                     return isSameDay(_selectedDay, day);
                   },
-                  onDaySelected: (selectedDay, focusedDay) async {
+                  onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
                       _selectedDay = selectedDay;
                       _focusedDay = focusedDay;
                     });
-                    await getSchedule(formatDate(selectedDay));
+                    getSchedule(formatDate(selectedDay));
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
                   },
                   eventLoader: (day) {
                     return _events[day]
@@ -370,9 +375,16 @@ class _CalendarState extends ConsumerState<Calendar> {
                         [];
                   },
                   onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
+                    if (_calendarFormat != format) {
+                      setState(() {
+                        _calendarFormat = format;
+                      });
+                    }
+                  },
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: 'Month',
+                    CalendarFormat.twoWeeks: '2 Weeks',
+                    CalendarFormat.week: 'Week',
                   },
                 ),
                 const SizedBox(height: 8.0),

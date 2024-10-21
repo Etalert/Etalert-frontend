@@ -288,17 +288,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     }
   }
 
-  Future<void> editSchedule(String scheduleId, String name, String date,
-      String startTime, String endTime, bool isHaveEndTime) async {
-    try {
-      await editScheduleService(
-          scheduleId, name, date, startTime, endTime, isHaveEndTime);
-      await fetchAllSchedules();
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-    }
-  }
-
+<<<<<<<<< Temporary merge branch 1
   List<Schedule> getSchedulesForDate(DateTime date) {
     return state.when(
       data: (state) {
@@ -308,6 +298,17 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
       loading: () => [],
       error: (_, __) => [],
     );
+  }
+
+  Future<void> editSchedule(String scheduleId, String name, String date,
+      String startTime, String endTime, bool isHaveEndTime) async {
+    try {
+      await editScheduleService(
+          scheduleId, name, date, startTime, endTime, isHaveEndTime);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
   }
 }
 
