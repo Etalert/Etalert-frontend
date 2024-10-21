@@ -267,33 +267,27 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   Future<void> _createSchedule(
-    String scheduleName,
-    String date,
-    String startTime,
-    String? endTime,
-    String? oriName,
-    double? orilat,
-    double? orilng,
-    String? desName,
-    double? deslat,
-    double? deslng,
-    bool isFirstSchedule,
-    DateTime selectedDay,
-    bool isTraveling,
-  ) async {
-    final bool isHaveLocation = oriName != null &&
-        desName != null &&
-        orilat != null &&
-        orilng != null &&
-        deslat != null &&
-        deslng != null;
+      String scheduleName,
+      String date,
+      String startTime,
+      String? endTime,
+      bool isHaveEndTime,
+      String? oriName,
+      double? orilat,
+      double? orilng,
+      String? desName,
+      double? deslat,
+      double? deslng,
+      bool isFirstSchedule,
+      DateTime selectedDay,
+      bool isHaveLocation) async {
     final req = ScheduleReq(
       googleId: widget.googleId,
       name: scheduleName,
       date: date,
       startTime: startTime,
       endTime: endTime,
-      isHaveEndTime: true,
+      isHaveEndTime: isHaveEndTime,
       oriName: oriName,
       oriLatitude: orilat,
       oriLongtitude: orilng,
@@ -302,7 +296,6 @@ class _CalendarState extends ConsumerState<Calendar> {
       destLongtitude: deslng,
       isHaveLocation: isHaveLocation,
       isFirstSchedule: isFirstSchedule,
-      isTraveling: isTraveling,
       recurrence: EnumRecurrence.none.value,
     );
     await ref.read(scheduleProvider(widget.googleId).notifier).addSchedule(req);
@@ -610,59 +603,38 @@ class _CalendarState extends ConsumerState<Calendar> {
         onSave: (eventDetails) async {
           final taskName = eventDetails['name'];
           final dateString = eventDetails['date'];
-          final time = eventDetails['time'] as TimeOfDay;
-          final isChecked = eventDetails['isChecked'];
+          final startTime = eventDetails['startTime'] as TimeOfDay;
+          final endTime = eventDetails['endTime'];
+          final isHaveEndTime = eventDetails['isHaveEndTime'];
+          final isRoutineChecked = eventDetails['isRoutineChecked'];
           final oriLocationName = eventDetails['originLocation'];
           final desLocationName = eventDetails['destinationLocation'];
+          final isHaveLocation = eventDetails['isHaveLocation'];
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
             _selectedDay.month,
             _selectedDay.day,
-            time.hour,
-            time.minute,
+            startTime.hour,
+            startTime.minute,
           );
 
           await _createSchedule(
             taskName,
             dateString,
-            time.format(context),
-            TimeOfDay(hour: time.hour + 1, minute: time.minute).format(context),
+            startTime.format(context),
+            endTime?.format(context),
+            isHaveEndTime,
             oriLocationName,
             eventDetails['originLatitude'],
             eventDetails['originLongitude'],
             desLocationName,
             eventDetails['destinationLatitude'],
             eventDetails['destinationLongitude'],
-            isChecked,
+            isRoutineChecked,
             _selectedDay,
-            isChecked,
+            isHaveLocation,
           );
-
-          // final notificationId =
-          //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await _notificationsHandler.showNotification(
-          //   AlarmSettings(
-          //     id: notificationId,
-          //     dateTime: scheduledDateTime,
-          //     notificationTitle: taskName,
-          //     notificationBody: "Your schedule is about to start!",
-          //     assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-          //     loopAudio: true,
-          //     enableNotificationOnKill: true,
-          //   ),
-          // );
-
-          // final alarmId = DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await AlarmManager.setAlarmWithAutoStop(
-          //   id: alarmId,
-          //   dateTime: scheduledDateTime,
-          //   title: taskName,
-          //   body: "Your schedule is about to start!",
-          //   flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-          // );
 
           setState(() {});
         },
