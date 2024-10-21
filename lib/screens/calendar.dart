@@ -204,7 +204,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   Future<List<Schedule>?> getSchedule(String date) async {
-    final data = await getAllSchedules(widget.googleId, date);
+    final data = await getAllSchedulesByDate(widget.googleId, date);
 
     if (data != null) {
       return data;

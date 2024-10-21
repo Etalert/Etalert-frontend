@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/services/api.dart';
 
-Future<List<Schedule>?> getUserSchedules(String googleId) async {
+Future<List<Schedule>?> getAllUserSchedules(String googleId) async {
   try {
-    final response = await Api.dio.get('/users/schedules/$googleId');
+    final response = await Api.dio.get('/users/schedules/all/$googleId');
 
     if (response.statusCode == 200) {
       final data = response.data;
