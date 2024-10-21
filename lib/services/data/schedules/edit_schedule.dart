@@ -5,6 +5,7 @@ Future<void> editScheduleService(String scheduleId, String name, String date,
   try {
     final response = await Api.dio.patch('/users/schedules/$scheduleId', data: {
       'name': name,
+      'date': date,
       'startTime': startTime,
       'endTime': endTime,
       'isHaveEndTime': isHaveEndTime,

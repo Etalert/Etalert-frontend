@@ -70,10 +70,10 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     state = const AsyncValue.loading();
     try {
       // Fetch user-created and backend schedules
-      final List<Schedule>? userSchedules = await getUserSchedules(googleId);
+      final List<Schedule>? userSchedules = await getAllUserSchedules(googleId);
       final String today = DateFormat('dd-MM-yyyy').format(DateTime.now());
       final List<Schedule>? backendSchedules =
-          await getAllSchedules(googleId, today);
+          await getAllSchedulesByDate(googleId, today);
 
       // Combine schedules, ensuring no duplicates
       final List<Schedule> allSchedules = [
@@ -101,11 +101,11 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
   Future<void> fetchSchedulesForDate(String date) async {
     try {
       // Fetch user schedules and ensure it's a List<Schedule>
-      final List<Schedule>? userSchedules = await getUserSchedules(googleId);
+      final List<Schedule>? userSchedules = await getAllUserSchedules(googleId);
 
       // Fetch backend schedules and ensure it's a List<Schedule>
       final List<Schedule>? backendSchedules =
-          await getAllSchedules(googleId, date);
+          await getAllSchedulesByDate(googleId, date);
 
       // Combine the schedules, filtering out duplicates based on schedule ID
       final List<Schedule> allSchedules = [
@@ -165,7 +165,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
 
       // Step 3: Fetch backend schedules related to the new schedule
       final relatedBackendSchedules =
-          await getAllSchedules(googleId, scheduleReq.date);
+          await getAllSchedulesByDate(googleId, scheduleReq.date);
 
       if (relatedBackendSchedules != null &&
           relatedBackendSchedules.isNotEmpty) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/components/custom_schedule_dialog.dart';
+import 'package:frontend/components/edit_schedule_dialog.dart';
 import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
@@ -204,7 +205,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   Future<List<Schedule>?> getSchedule(String date) async {
-    final data = await getAllSchedules(widget.googleId, date);
+    final data = await getAllSchedulesByDate(widget.googleId, date);
 
     if (data != null) {
       return data;
@@ -515,6 +516,14 @@ class _CalendarState extends ConsumerState<Calendar> {
                   icon: const Icon(Icons.edit),
                   onPressed: () async {
                     // Edit the event
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => EditScheduleDialog(
+                        googleId: widget.googleId,
+                        scheduleId: event['id'],
+                      ),
+                    );
                   },
                 ),
                 IconButton(
