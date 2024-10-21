@@ -276,19 +276,6 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     }
   }
 
-  Future<void> deleteSchedule(int groupId) async {
-    state = const AsyncValue.loading();
-    try {
-      await deleteSchedules(groupId);
-      // Stop the alarm and cancel the timer when deleting a schedule
-      await AlarmManager.stopAlarm(groupId);
-      await fetchAllSchedules();
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-    }
-  }
-
-<<<<<<<<< Temporary merge branch 1
   List<Schedule> getSchedulesForDate(DateTime date) {
     return state.when(
       data: (state) {
@@ -299,12 +286,24 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
       error: (_, __) => [],
     );
   }
-
+  
   Future<void> editSchedule(String scheduleId, String name, String date,
       String startTime, String endTime, bool isHaveEndTime) async {
     try {
       await editScheduleService(
           scheduleId, name, date, startTime, endTime, isHaveEndTime);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  Future<void> deleteSchedule(int groupId) async {
+    state = const AsyncValue.loading();
+    try {
+      await deleteSchedules(groupId);
+      // Stop the alarm and cancel the timer when deleting a schedule
+      await AlarmManager.stopAlarm(groupId);
       await fetchAllSchedules();
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
