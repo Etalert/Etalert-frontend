@@ -20,7 +20,8 @@ class EditScheduleDialog extends ConsumerStatefulWidget {
 class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
-  final TextEditingController timeController = TextEditingController();
+  final TextEditingController startTimeController = TextEditingController();
+  final TextEditingController endTimeController = TextEditingController();
   bool isLoading = true;
   String? errorMessage;
 
@@ -36,7 +37,10 @@ class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
       setState(() {
         nameController.text = schedule.name;
         dateController.text = schedule.date;
-        timeController.text = schedule.startTime;
+        startTimeController.text = schedule.startTime;
+        schedule.isHaveEndTime
+            ? {endTimeController.text = schedule.endTime!}
+            : {endTimeController.text = ""};
         isLoading = false;
       });
     } catch (e) {
@@ -60,27 +64,15 @@ class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
     );
   }
 
-  String _calculateEndTime(String startTime) {
-    final parts = startTime.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-
-    final endDateTime =
-        DateTime(2024, 1, 1, hour, minute).add(const Duration(hours: 1));
-    return '${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _handleSave() async {
     try {
-      final endTime = _calculateEndTime(timeController.text);
-
       await ref.read(scheduleProvider(widget.googleId).notifier).editSchedule(
             widget.scheduleId,
             nameController.text,
             dateController.text,
-            timeController.text,
-            endTime,
-            true, // isHaveEndTime is always true
+            startTimeController.text,
+            endTimeController.text,
+            endTimeController.text.isNotEmpty,
           );
 
       if (mounted) {
@@ -206,7 +198,7 @@ class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: timeController,
+                  controller: startTimeController,
                   readOnly: true,
                   decoration: InputDecoration(
                     labelText: 'Start Time',
@@ -217,7 +209,7 @@ class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
                         Icon(Icons.access_time, color: colorScheme.primary),
                   ),
                   onTap: () async {
-                    final parts = timeController.text.split(':');
+                    final parts = startTimeController.text.split(':');
                     final currentTime = TimeOfDay(
                       hour: int.parse(parts[0]),
                       minute: int.parse(parts[1]),
@@ -230,7 +222,44 @@ class _EditScheduleDialogState extends ConsumerState<EditScheduleDialog> {
 
                     if (picked != null) {
                       setState(() {
-                        timeController.text =
+                        startTimeController.text =
+                            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: endTimeController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'End Time',
+                    border: customBorder,
+                    enabledBorder: customBorder,
+                    focusedBorder: customBorder,
+                    prefixIcon:
+                        Icon(Icons.access_time, color: colorScheme.primary),
+                  ),
+                  onTap: () async {
+                    final TimeOfDay currentTime;
+                    if (endTimeController.text != "") {
+                      final parts = endTimeController.text.split(':');
+                      currentTime = TimeOfDay(
+                        hour: int.parse(parts[0]),
+                        minute: int.parse(parts[1]),
+                      );
+                    } else {
+                      currentTime = TimeOfDay.now();
+                    }
+
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: currentTime,
+                    );
+
+                    if (picked != null) {
+                      setState(() {
+                        endTimeController.text =
                             '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
                       });
                     }
