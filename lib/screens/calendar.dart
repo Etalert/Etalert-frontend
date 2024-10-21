@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/components/custom_schedule_dialog.dart';
@@ -11,6 +14,7 @@ import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/schedule_provider.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
+import 'package:frontend/services/websocket/web_socket_service.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -21,6 +25,8 @@ import 'package:frontend/services/data/schedules/get_schedules.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
 import 'package:frontend/services/notification/alarm_manager.dart';
 import 'dart:async';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 class Calendar extends ConsumerStatefulWidget {
   final String googleId;
@@ -48,6 +54,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   Set<Marker> _marker = {};
   late SelectedLocation destinationLocation;
   final NotificationsHandler _notificationsHandler = NotificationsHandler();
+  late final webSocketService;
 
   @override
   void initState() {
@@ -55,6 +62,59 @@ class _CalendarState extends ConsumerState<Calendar> {
     _notificationsHandler.initialize();
     _setInitialLocation();
     _initializeAlarm();
+
+    webSocketService = WebSocketService(
+      onEventUpdate: (p0) {
+        ref
+            .watch(scheduleProvider(widget.googleId).notifier)
+            .fetchAllSchedules();
+      },
+      // onEventUpdate: (updatedEvent) {
+      //   setState(() {
+      //     // Find the date for this event
+      //     final date = DateFormat('dd-MM-yyyy')
+      //         .parse(updatedEvent['date'])
+      //         .add(const Duration(hours: 7));
+
+      //     // If we have events for this date
+      //     if (_events[date.toUtc()] != null) {
+      //       // Find and update the matching event
+      //       final eventIndex = _events[date.toUtc()]!
+      //           .indexWhere((event) => event['id'] == updatedEvent['id']);
+
+      //       if (eventIndex != -1) {
+      //         // Update existing event
+      //         _events[date.toUtc()]![eventIndex] = {
+      //           ..._events[date.toUtc()]![eventIndex],
+      //           ...updatedEvent,
+      //         };
+      //       } else {
+      //         // Add new event if not found
+      //         _events[date.toUtc()]!.add(updatedEvent);
+      //       }
+
+      //       // Resort events for this date
+      //       _events[date.toUtc()]!.sort((a, b) {
+      //         TimeOfDay timeA = a['time'];
+      //         TimeOfDay timeB = b['time'];
+      //         return timeA.hour.compareTo(timeB.hour) == 0
+      //             ? timeA.minute.compareTo(timeB.minute)
+      //             : timeA.hour.compareTo(timeB.hour);
+      //       });
+      //     } else {
+      //       // Create new entry for this date
+      //       _events[date.toUtc()] = [updatedEvent];
+      //     }
+      //   });
+      // },
+    );
+    webSocketService.connectWebSocket();
+  }
+
+  @override
+  void dispose() {
+    webSocketService.closeWebSocket();
+    super.dispose();
   }
 
   Future<void> _setInitialLocation() async {
@@ -406,11 +466,6 @@ class _CalendarState extends ConsumerState<Calendar> {
         body: Center(child: CircularProgressIndicator()),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Widget _buildTimeline() {
