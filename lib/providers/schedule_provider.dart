@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/services/data/schedules/delete_schedule.dart';
+import 'package:frontend/services/data/schedules/edit_schedule.dart';
 import 'package:frontend/services/data/schedules/get_user_schedules.dart';
 import 'package:frontend/services/data/schedules/create_schedule.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
@@ -69,10 +70,10 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     state = const AsyncValue.loading();
     try {
       // Fetch user-created and backend schedules
-      final List<Schedule>? userSchedules = await getUserSchedules(googleId);
+      final List<Schedule>? userSchedules = await getAllUserSchedules(googleId);
       final String today = DateFormat('dd-MM-yyyy').format(DateTime.now());
       final List<Schedule>? backendSchedules =
-          await getAllSchedules(googleId, today);
+          await getAllSchedulesByDate(googleId, today);
 
       // Combine schedules, ensuring no duplicates
       final List<Schedule> allSchedules = [
@@ -100,11 +101,11 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
   Future<void> fetchSchedulesForDate(String date) async {
     try {
       // Fetch user schedules and ensure it's a List<Schedule>
-      final List<Schedule>? userSchedules = await getUserSchedules(googleId);
+      final List<Schedule>? userSchedules = await getAllUserSchedules(googleId);
 
       // Fetch backend schedules and ensure it's a List<Schedule>
       final List<Schedule>? backendSchedules =
-          await getAllSchedules(googleId, date);
+          await getAllSchedulesByDate(googleId, date);
 
       // Combine the schedules, filtering out duplicates based on schedule ID
       final List<Schedule> allSchedules = [
@@ -164,7 +165,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
 
       // Step 3: Fetch backend schedules related to the new schedule
       final relatedBackendSchedules =
-          await getAllSchedules(googleId, scheduleReq.date);
+          await getAllSchedulesByDate(googleId, scheduleReq.date);
 
       if (relatedBackendSchedules != null &&
           relatedBackendSchedules.isNotEmpty) {
@@ -275,17 +276,6 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     }
   }
 
-  Future<void> deleteSchedule(int groupId) async {
-    try {
-      await deleteSchedules(groupId);
-      // Stop the alarm and cancel the timer when deleting a schedule
-      await AlarmManager.stopAlarm(groupId);
-      await fetchAllSchedules();
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-    }
-  }
-
   List<Schedule> getSchedulesForDate(DateTime date) {
     return state.when(
       data: (state) {
@@ -295,6 +285,29 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
       loading: () => [],
       error: (_, __) => [],
     );
+  }
+  
+  Future<void> editSchedule(String scheduleId, String name, String date,
+      String startTime, String endTime, bool isHaveEndTime) async {
+    try {
+      await editScheduleService(
+          scheduleId, name, date, startTime, endTime, isHaveEndTime);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  Future<void> deleteSchedule(int groupId) async {
+    state = const AsyncValue.loading();
+    try {
+      await deleteSchedules(groupId);
+      // Stop the alarm and cancel the timer when deleting a schedule
+      await AlarmManager.stopAlarm(groupId);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
   }
 }
 
