@@ -3,15 +3,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/models/web_socket_message/web_socket_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 class WebSocketService {
   WebSocketChannel? channel;
   Timer? reconnectTimer;
+  String googleId;
   final Function(Map<String, dynamic>)? onEventUpdate;
 
-  WebSocketService({this.onEventUpdate});
+  WebSocketService({this.onEventUpdate, required this.googleId});
 
   void connectWebSocket() {
     try {
@@ -21,25 +23,33 @@ class WebSocketService {
 
       channel?.stream.listen(
         (message) {
-          print('received message: $message');
-          try {
-            final eventData = jsonDecode(message);
-            if (onEventUpdate != null) {
-              final updatedEvent = {
-                'id': eventData['id'],
-                'name': eventData['name'],
-                'date': eventData['date'],
-                'time': _parseTimeString(eventData['startTime']),
-                'endTime': eventData['isHaveEndTime']
-                    ? _parseTimeString(eventData['endTime'])
-                    : null,
-                'isHaveEndTime': eventData['isHaveEndTime'],
-              };
-              onEventUpdate!(updatedEvent);
-              print('updated event: $updatedEvent');
+          final data = WebSocketMessage.fromJson(jsonDecode(message));
+          //check if the message is for the current user
+          if (data.googleId == googleId) {
+            print('received message: $message');
+
+            //check if the message is an update event
+            if (data.method == 'update') {
+              try {
+                final eventData = jsonDecode(message);
+                if (onEventUpdate != null) {
+                  final updatedEvent = {
+                    'id': eventData['id'],
+                    'name': eventData['name'],
+                    'date': eventData['date'],
+                    'time': _parseTimeString(eventData['startTime']),
+                    'endTime': eventData['isHaveEndTime']
+                        ? _parseTimeString(eventData['endTime'])
+                        : null,
+                    'isHaveEndTime': eventData['isHaveEndTime'],
+                  };
+                  onEventUpdate!(updatedEvent);
+                  print('updated event: $updatedEvent');
+                }
+              } catch (e) {
+                print('Error processing WebSocket message: $e');
+              }
             }
-          } catch (e) {
-            print('Error processing WebSocket message: $e');
           }
         },
         onDone: () {

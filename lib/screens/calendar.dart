@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/components/custom_schedule_dialog.dart';
@@ -25,8 +22,6 @@ import 'package:frontend/services/data/schedules/get_schedules.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
 import 'package:frontend/services/notification/alarm_manager.dart';
 import 'dart:async';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
 
 class Calendar extends ConsumerStatefulWidget {
   final String googleId;
@@ -54,7 +49,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   Set<Marker> _marker = {};
   late SelectedLocation destinationLocation;
   final NotificationsHandler _notificationsHandler = NotificationsHandler();
-  late final webSocketService;
+  late final WebSocketService webSocketService;
 
   @override
   void initState() {
@@ -64,7 +59,8 @@ class _CalendarState extends ConsumerState<Calendar> {
     _initializeAlarm();
 
     webSocketService = WebSocketService(
-      onEventUpdate: (p0) {
+      googleId: widget.googleId,
+      onEventUpdate: (updatedEvent) {
         ref
             .watch(scheduleProvider(widget.googleId).notifier)
             .fetchAllSchedules();
