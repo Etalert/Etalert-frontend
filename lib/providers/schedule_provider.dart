@@ -189,18 +189,19 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
   Future<void> _setNotificationAndAlarm(Schedule schedule,
       {bool autoStop = false}) async {
     try {
-      final date = DateFormat('dd-MM-yyyy').parse(schedule.date);
-      final time = schedule.startTime.split(':');
-      final scheduledDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        int.parse(time[0]),
-        int.parse(time[1]),
+      final alarmId = AlarmManager.generateAlarmId(schedule.id);
+
+      // Check if the alarm is already active using the new getter
+      if (AlarmManager.activeAlarms.contains(alarmId)) {
+        print('[ScheduleNotifier] Alarm with id $alarmId is already active.');
+        return;
+      }
+
+      final scheduledDateTime = DateFormat('dd-MM-yyyy HH:mm').parse(
+        '${schedule.date} ${schedule.startTime}',
       );
 
       if (scheduledDateTime.isAfter(DateTime.now())) {
-        final alarmId = schedule.id.hashCode % 0x7FFFFFFF;
         await _setAlarm(
           id: alarmId,
           dateTime: scheduledDateTime,
@@ -210,7 +211,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
         );
       }
     } catch (e) {
-      print('Error while setting notification or alarm: $e');
+      print('Error setting alarm: $e');
     }
   }
 
@@ -227,7 +228,11 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     );
 
     if (scheduledDateTime.isAfter(DateTime.now())) {
-      final alarmId = scheduledDateTime.millisecondsSinceEpoch % 0x7FFFFFFF;
+      final alarmId = AlarmManager.generateAlarmIdFromRequest(
+        scheduleReq.date,
+        scheduleReq.startTime,
+        scheduleReq.name,
+      );
       await _setAlarm(
         id: alarmId,
         dateTime: scheduledDateTime,
@@ -260,7 +265,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
 
     if (autoStop) {
       await AlarmManager.setAlarmWithAutoStop(
-        id: id,
+        alarmId: id,
         dateTime: dateTime,
         title: title,
         body: body,
@@ -268,7 +273,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
       );
     } else {
       await AlarmManager.setAlarmWithSound(
-        id: id,
+        alarmId: id,
         dateTime: dateTime,
         title: title,
         body: body,
@@ -286,7 +291,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
       error: (_, __) => [],
     );
   }
-  
+
   Future<void> editSchedule(String scheduleId, String name, String date,
       String startTime, String endTime, bool isHaveEndTime) async {
     try {
@@ -302,8 +307,8 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     state = const AsyncValue.loading();
     try {
       await deleteSchedules(groupId);
-      // Stop the alarm and cancel the timer when deleting a schedule
-      await AlarmManager.stopAlarm(groupId);
+      // Use the new deleteAlarm method
+      await AlarmManager.deleteAlarm(groupId.toString());
       await fetchAllSchedules();
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

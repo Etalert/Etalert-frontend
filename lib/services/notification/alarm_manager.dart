@@ -4,15 +4,29 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class AlarmManager {
   static final Map<int, Timer> _alarmTimers = {};
+  static final Set<int> _activeAlarms = {};
+
+  static Set<int> get activeAlarms => _activeAlarms;
+  
+  // Helper method to generate consistent alarm ID from schedule
+  static int generateAlarmId(String scheduleId) {
+    return scheduleId.hashCode % 0x7FFFFFFF;
+  }
+
+  // Helper method to generate consistent alarm ID from request
+  static int generateAlarmIdFromRequest(String date, String startTime, String name) {
+    final idString = '$date-$startTime-$name';
+    return idString.hashCode % 0x7FFFFFFF;
+  }
 
   static Future<void> setAlarmWithSound({
-    required int id,
+    required int alarmId,
     required DateTime dateTime,
     required String title,
     required String body,
   }) async {
     final alarmSettings = AlarmSettings(
-      id: id,
+      id: alarmId,
       dateTime: dateTime,
       assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
       loopAudio: true,
@@ -24,17 +38,18 @@ class AlarmManager {
     );
     
     await Alarm.set(alarmSettings: alarmSettings);
+    _activeAlarms.add(alarmId);
   }
 
   static Future<void> setAlarmWithAutoStop({
-    required int id,
+    required int alarmId,
     required DateTime dateTime,
     required String title,
     required String body,
     required FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
   }) async {
     final alarmSettings = AlarmSettings(
-      id: id,
+      id: alarmId,
       dateTime: dateTime.add(const Duration(seconds: 1)), // Slight delay
       assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
       notificationTitle: title,
@@ -46,21 +61,36 @@ class AlarmManager {
     );
     
     await Alarm.set(alarmSettings: alarmSettings);
+    _activeAlarms.add(alarmId);
 
-    // Set up a timer to stop the alarm after 2 minutes
-    _alarmTimers[id] = Timer(const Duration(minutes: 2), () {
-      Alarm.stop(id);
-      _alarmTimers.remove(id);
+    // Set up a timer to stop the alarm after 15 minutes
+    _alarmTimers[alarmId] = Timer(const Duration(minutes: 15), () {
+      Alarm.stop(alarmId);
+      _alarmTimers.remove(alarmId);
+      _activeAlarms.remove(alarmId);
     });
   }
 
-  static Future<void> stopAlarm(int id) async {
-    await Alarm.stop(id);
-    cancelAlarmTimer(id);
+  static Future<void> deleteAlarm(String scheduleId) async {
+    final alarmId = generateAlarmId(scheduleId);
+
+    if (_activeAlarms.contains(alarmId)) {
+      await stopAlarm(alarmId);
+    }
   }
 
-  static void cancelAlarmTimer(int id) {
-    _alarmTimers[id]?.cancel();
-    _alarmTimers.remove(id);
+  static Future<void> stopAlarm(int alarmId) async {
+    if (!_activeAlarms.contains(alarmId)) return;  // Guard to prevent redundant stops
+
+    print('[AlarmManager] Stopping alarm with id: $alarmId');
+    await Alarm.stop(alarmId);
+    _alarmTimers[alarmId]?.cancel();
+    _alarmTimers.remove(alarmId);
+    _activeAlarms.remove(alarmId);
+  }
+
+  static void cancelAlarmTimer(int alarmId) {
+    _alarmTimers[alarmId]?.cancel();
+    _alarmTimers.remove(alarmId);
   }
 }  

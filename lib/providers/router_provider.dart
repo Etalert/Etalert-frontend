@@ -82,8 +82,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       },
     ),
     GoRoute(
-      path: '/setting',
-      builder: (context, state) => const Setting(),
+      path: '/setting/:googleId',
+      builder: (context, state) {
+        final googleId = state.params['googleId']!;
+        if(googleId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid googleId'),),
+          );
+        }
+        return Setting(
+          googleId: googleId,
+        );
+      }
     ),
     GoRoute(
       path: '/editinfo',

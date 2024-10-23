@@ -18,7 +18,6 @@ Future<void> createSchedule(ScheduleReq schedule) async {
       'DestLongitude': schedule.destLongtitude,
       'IsHaveLocation': schedule.isHaveLocation,
       'IsFirstSchedule': schedule.isFirstSchedule,
-      'IsTraveling': schedule.isTraveling,
       'Recurrence': schedule.recurrence,
     });
   } catch (e) {

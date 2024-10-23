@@ -1,20 +1,21 @@
 class Routine {
-  String googleId;
+  String? googleId;
   String name;
   int duration;
   int order;
 
   Routine(
-      {required this.googleId,
+      {this.googleId,
       required this.name,
       required this.duration,
       required this.order});
 
   factory Routine.fromJson(Map json) {
     return Routine(
-        googleId: json['googleId'],
-        name: json['name'],
-        duration: json['duration'],
-        order: json['order']);
+      googleId: json['googleId']?.toString(), // Optional field
+      name: json['Name']?.toString() ?? '', // Note the capital 'N' in 'Name'
+      duration: json['Duration']?.toInt() ?? 0, // Note the capital 'D'
+      order: json['Order']?.toInt() ?? 0, // Note the capital 'O'
+    );
   }
 }

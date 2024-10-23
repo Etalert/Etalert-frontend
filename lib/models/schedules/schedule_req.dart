@@ -13,7 +13,6 @@ class ScheduleReq {
   final double? destLongtitude;
   final bool isHaveLocation;
   final bool isFirstSchedule;
-  final bool? isTraveling;
   final String recurrence;
 
   ScheduleReq({
@@ -31,7 +30,6 @@ class ScheduleReq {
     this.destLongtitude,
     required this.isHaveLocation,
     required this.isFirstSchedule,
-    this.isTraveling,
     required this.recurrence,
   });
 }
