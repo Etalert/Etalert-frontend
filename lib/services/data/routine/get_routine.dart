@@ -5,20 +5,20 @@ Future<List<Routine>> getAllRoutines(String googleId) async {
   try {
     final response = await Api.dio.get('/users/routines/$googleId');
     print('Raw response data: ${response.data}'); // Debug log
-    
-    if (response.statusCode == 200) {
-      final List<dynamic> data = List<dynamic>.from(response.data);
-      return data.map<Routine>((json) {
-        // Convert the dynamic map to Map<String, dynamic>
-        final Map<String, dynamic> routineMap = Map<String, dynamic>.from(json);
-        return Routine.fromJson(routineMap);
+
+    if (response.statusCode == 200 && response.data != null) {
+      final List<dynamic> data = response.data;
+
+      return data.map((json) {
+        return Routine.fromJson(Map<String, dynamic>.from(json));
       }).toList();
+    } else {
+      throw Exception('Failed to load routines: ${response.statusCode}');
     }
-    
-    return [];
-    
   } catch (e) {
     print('Error loading routines: $e');
     rethrow;
   }
 }
+
+

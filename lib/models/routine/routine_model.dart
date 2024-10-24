@@ -1,21 +1,40 @@
 class Routine {
-  String? googleId;
-  String name;
-  int duration;
-  int order;
+  final String id;
+  final String name;
+  final int duration;
+  final int order;
+  final List<String> days;
 
-  Routine(
-      {this.googleId,
-      required this.name,
-      required this.duration,
-      required this.order});
+  Routine({
+    required this.id,
+    required this.name,
+    required this.duration,
+    required this.order,
+    required this.days,
+  });
 
-  factory Routine.fromJson(Map json) {
+  // Updated fromJson to handle missing fields
+  factory Routine.fromJson(Map<String, dynamic> json) {
+    // Use a fallback ID (name + order) if the actual ID is missing
+    final fallbackId = '${json['Name'] ?? ''}_${json['Order'] ?? 0}';
+    // Print the JSON response to ensure correct data
+    print('Creating Routine from JSON: $json');
     return Routine(
-      googleId: json['googleId']?.toString(), // Optional field
-      name: json['Name']?.toString() ?? '', // Note the capital 'N' in 'Name'
-      duration: json['Duration']?.toInt() ?? 0, // Note the capital 'D'
-      order: json['Order']?.toInt() ?? 0, // Note the capital 'O'
+      id: (json['id'] ?? fallbackId) as String, // Use fallback ID if necessary
+      name: (json['Name'] ?? 'Unnamed') as String,
+      duration: (json['Duration'] ?? 0) as int,
+      order: (json['Order'] ?? 0) as int,
+      days: List<String>.from(json['days'] ?? []),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'duration': duration,
+      'order': order,
+      'days': days,
+    };
   }
 }

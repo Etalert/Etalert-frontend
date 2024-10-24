@@ -67,7 +67,6 @@ class _CalendarState extends ConsumerState<Calendar> {
     _notificationsHandler.initialize();
     _setInitialLocation();
     _initializeAlarm();
-    //_fetchUserData();
 
     // Initialize the router listener here
     _routerListener = () {
@@ -227,24 +226,6 @@ class _CalendarState extends ConsumerState<Calendar> {
     _alarmSubscription = null;
     _initializeAlarm();
   }
-
-  // Future<void> _fetchUserData() async {
-  //   try {
-  //     data = await getUserInfo(widget.googleId);
-  //     if (mounted) {
-  //       setState(() {
-  //         isLoading = false;
-  //       });
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching user data: $e');
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Failed to fetch user data.')),
-  //       );
-  //     }
-  //   }
-  // }
 
   Future<void> _setInitialLocation() async {
     bool serviceEnabled;
@@ -558,32 +539,6 @@ class _CalendarState extends ConsumerState<Calendar> {
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w600),
                 ),
-                // GestureDetector(
-                //   onTap: () {
-                //     if (data != null) {
-                //       context.go(
-                //           '/setting/${widget.googleId}'); // Ensure the route exists and is valid
-                //     } else {
-                //       ScaffoldMessenger.of(context).showSnackBar(
-                //         const SnackBar(
-                //           content: Text('Unable to load user data.'),
-                //         ),
-                //       );
-                //     }
-                //   },
-                //   child: Padding(
-                //     padding: const EdgeInsets.only(left: 275),
-                //     child: CircleAvatar(
-                //       radius: 20,
-                //       backgroundImage: data?.image != null
-                //           ? NetworkImage(
-                //               data!.image!) // Load user profile image
-                //           : const AssetImage('assets/IMG_1274.JPG')
-                //               as ImageProvider, // Use a default image if not available
-                //       backgroundColor: Colors.grey[200],
-                //     ),
-                //   ),
-                // ),
               ],
             ),
           ),

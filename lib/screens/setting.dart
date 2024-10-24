@@ -7,6 +7,7 @@ import 'package:frontend/services/data/user/get_user_info.dart';
 import 'package:frontend/services/data/user/edit_user_info.dart';
 import 'package:frontend/services/data/routine/get_routine.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/services/data/routine/edit_routine.dart';
 
 class Setting extends ConsumerStatefulWidget {
   final String googleId;
@@ -65,9 +66,15 @@ class _SettingState extends ConsumerState<Setting> {
         isLoading = true;
       });
 
-      final fetchedRoutines = await getAllRoutines(widget.googleId);
+      // Fetch routines from API
+      final List<Routine> fetchedRoutines =
+          await getAllRoutines(widget.googleId);
       print('Fetched routines: $fetchedRoutines'); // Debug log
 
+      for (var routine in fetchedRoutines) {
+        print('Loaded Routine: ${routine.toJson()}'); // Ensure ID is present
+      }
+      // Check if routines are valid and assign them
       if (mounted) {
         setState(() {
           routines = fetchedRoutines;
@@ -81,9 +88,9 @@ class _SettingState extends ConsumerState<Setting> {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to load routines'),
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -105,6 +112,44 @@ class _SettingState extends ConsumerState<Setting> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to update name')),
+      );
+    }
+  }
+
+  void _editRoutine(String routineId, Routine updatedRoutine) async {
+    try {
+      if (routineId.isEmpty) {
+        print('Error: Routine ID is empty before calling the API');
+        throw Exception('Routine ID cannot be empty.');
+      }
+
+      print('Sending update request for routine ID: $routineId');
+      print('Updated routine data: ${updatedRoutine.toJson()}');
+
+      // Call the API to edit the routine
+      await editRoutine(
+        routineId,
+        updatedRoutine.name,
+        updatedRoutine.duration,
+        updatedRoutine.order,
+        updatedRoutine.days,
+      );
+
+      // Update the local state to reflect changes immediately
+      setState(() {
+        final index = routines.indexWhere((r) => r.id == routineId);
+        if (index != -1) {
+          routines[index] = updatedRoutine; // Update the routine in the list
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Routine updated successfully!')),
+      );
+    } catch (e) {
+      print('Update failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update routine')),
       );
     }
   }
@@ -238,9 +283,12 @@ class _SettingState extends ConsumerState<Setting> {
                     final routine = routines[index];
                     return Card(
                       child: ListTile(
-                        title: Text(routine.name,
-                            style: TextStyle(color: colorScheme.primary)),
+                        title: Text(
+                          routine.name,
+                          style: TextStyle(color: colorScheme.primary),
+                        ),
                         subtitle: Text('${routine.duration} mins'),
+                        trailing: _buildDayCircles(routine, colorScheme),
                         onTap: () => _showTaskDialog(context, routine),
                       ),
                     );
@@ -251,10 +299,60 @@ class _SettingState extends ConsumerState<Setting> {
     );
   }
 
+// Helper to build day circles
+  Widget _buildDayCircles(Routine routine, ColorScheme colorScheme) {
+    // Days of the week in order
+    const daysOfWeek = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday'
+    ];
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: daysOfWeek.map((day) {
+        final isSelected = routine.days.contains(day);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+          child: CircleAvatar(
+            radius: 12, // Adjust size as needed
+            backgroundColor: isSelected
+                ? colorScheme.primary // Selected day color
+                : colorScheme.onSurface
+                    .withOpacity(0.2), // Unselected day color
+            child: Text(
+              day.substring(0, 1), // Display the first letter of the day
+              style: TextStyle(
+                color:
+                    isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   void _showTaskDialog(BuildContext context, Routine routine) {
-    // Use a Set to track multiple selected days
-    Set<String> selectedDays = {DateFormat('EEEE').format(DateTime.now())};
+    print('Routine passed to dialog: ${routine.toJson()}');
+
+    // Initialize the selected days with the routine's days
+    Set<String> selectedDays = routine.days.toSet();
+
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Controllers for editing routine name and duration
+    final TextEditingController nameController =
+        TextEditingController(text: routine.name);
+    final TextEditingController durationController =
+        TextEditingController(text: routine.duration.toString());
 
     showDialog(
       context: context,
@@ -273,16 +371,22 @@ class _SettingState extends ConsumerState<Setting> {
                     Row(
                       children: [
                         Icon(
-                          Icons.label_outline,
+                          Icons.edit,
                           color: colorScheme.onSurface.withOpacity(0.7),
                           size: 24,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          routine.name,
-                          style: TextStyle(
-                            color: colorScheme.onSurface.withOpacity(0.5),
-                            fontSize: 20,
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            controller: nameController,
+                            style: TextStyle(
+                              color: colorScheme.onSurface.withOpacity(0.7),
+                              fontSize: 20,
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
                       ],
@@ -302,14 +406,37 @@ class _SettingState extends ConsumerState<Setting> {
 
                 const SizedBox(height: 30),
 
-                // Duration display
-                Text(
-                  '${routine.duration} mins',
-                  style: TextStyle(
-                    color: colorScheme.primary,
-                    fontSize: 60,
-                    fontWeight: FontWeight.w300,
-                  ),
+                // Duration input field
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: durationController,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(
+                          color: colorScheme.primary,
+                          fontSize: 60,
+                          fontWeight: FontWeight.w300,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'mins',
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -318,19 +445,17 @@ class _SettingState extends ConsumerState<Setting> {
                 Text(
                   selectedDays.isEmpty
                       ? 'No days selected'
-                      : selectedDays.length == 1
-                          ? selectedDays.first
-                          : '${selectedDays.length} days selected',
+                      : selectedDays.join(', '),
                   style: TextStyle(
                     color: colorScheme.onSurface.withOpacity(0.7),
-                    fontSize: 24,
+                    fontSize: 18,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
 
                 const SizedBox(height: 30),
 
-                // Weekday selector (Sunday to Saturday)
+                // Weekday selector
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -386,20 +511,23 @@ class _SettingState extends ConsumerState<Setting> {
 
                 const SizedBox(height: 30),
 
-                // Display selected days summary (optional)
-                if (selectedDays.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      _getOrderedDayString(selectedDays),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.5),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
+                // Save button
+                ElevatedButton(
+                  onPressed: () {
+                    final updatedRoutine = Routine(
+                      id: routine.id,
+                      name: nameController.text,
+                      duration: int.tryParse(durationController.text) ??
+                          routine.duration,
+                      order: routine.order,
+                      days: selectedDays.toList(),
+                    );
+
+                    _editRoutine(routine.id, updatedRoutine);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
               ],
             ),
           ),
