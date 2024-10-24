@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/components/custom_schedule_dialog.dart';
 import 'package:frontend/components/edit_schedule_dialog.dart';
+import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
@@ -381,6 +382,7 @@ class _CalendarState extends ConsumerState<Calendar> {
               ],
             ),
           ),
+          drawer: Sidebar(googleId: widget.googleId),
           body: SafeArea(
             child: Column(
               children: [
