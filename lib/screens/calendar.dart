@@ -1,12 +1,10 @@
-import 'dart:convert';
-
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/components/custom_schedule_dialog.dart';
 import 'package:frontend/components/edit_schedule_dialog.dart';
+import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
@@ -29,8 +27,6 @@ import 'package:frontend/services/notification/alarm_manager.dart';
 import 'dart:async';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
-import 'package:frontend/components/rounded_image.dart';
-import 'package:frontend/services/data/user/get_user_info.dart';
 
 class Calendar extends ConsumerStatefulWidget {
   final String googleId;
@@ -58,7 +54,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   Set<Marker> _marker = {};
   late SelectedLocation destinationLocation;
   final NotificationsHandler _notificationsHandler = NotificationsHandler();
-  late final webSocketService;
+  late final WebSocketService webSocketService;
   StreamSubscription? _alarmSubscription;
   bool _isAlarmInitialized = false;
   late GoRouter _router;
@@ -84,7 +80,8 @@ class _CalendarState extends ConsumerState<Calendar> {
     };
 
     webSocketService = WebSocketService(
-      onEventUpdate: (p0) {
+      googleId: widget.googleId,
+      onEventUpdate: (updatedEvent) {
         ref
             .watch(scheduleProvider(widget.googleId).notifier)
             .fetchAllSchedules();
@@ -590,6 +587,7 @@ class _CalendarState extends ConsumerState<Calendar> {
               ],
             ),
           ),
+          drawer: Sidebar(googleId: widget.googleId),
           body: SafeArea(
             child: Column(
               children: [
