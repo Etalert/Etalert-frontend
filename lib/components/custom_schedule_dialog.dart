@@ -580,6 +580,7 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                             destinationLocation.selectedLatLng?.longitude,
                         'isHaveLocation': locationController.text.isNotEmpty &&
                             originLocationController.text.isNotEmpty,
+                        'recurrence' : selectedRecurrence.value,
                       };
 
                       widget.onSave(eventDetails);
