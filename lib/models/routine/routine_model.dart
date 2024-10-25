@@ -47,3 +47,20 @@ class Routine {
         'days': days,
       };
 }
+
+extension RoutineCopyWith on Routine {
+  Routine copyWith({
+    String? name,
+    int? duration,
+    int? order,
+    List<String>? days,
+  }) {
+    return Routine(
+      id: id,
+      name: name ?? this.name,
+      duration: duration ?? this.duration,
+      order: order ?? this.order,
+      days: days ?? this.days,
+    );
+  }
+}

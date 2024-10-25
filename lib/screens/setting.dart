@@ -394,12 +394,26 @@ class _SettingState extends ConsumerState<Setting> {
         const SizedBox(height: 16),
         Expanded(
           child: routines.isEmpty
-              ? const Text('No tasks available')
-              : ListView.builder(
+              ? const Center(child: Text('No tasks available'))
+              : ReorderableListView.builder(
                   itemCount: routines.length,
+                  onReorder: (int oldIndex, int newIndex) async {
+                    if (newIndex > oldIndex) newIndex--; // Adjust for removal
+
+                    setState(() {
+                      // Update order locally
+                      final Routine movedRoutine = routines.removeAt(oldIndex);
+                      routines.insert(newIndex, movedRoutine);
+                    });
+
+                    // Update order in the backend
+                    await _updateRoutineOrder();
+                  },
                   itemBuilder: (context, index) {
                     final routine = routines[index];
                     return Card(
+                      key: ValueKey(
+                          routine.id), // Ensure each card has a unique key
                       child: ListTile(
                         title: Text(
                           routine.name,
@@ -426,6 +440,31 @@ class _SettingState extends ConsumerState<Setting> {
         ),
       ],
     );
+  }
+
+  Future<void> _updateRoutineOrder() async {
+    try {
+      for (int i = 0; i < routines.length; i++) {
+        final updatedRoutine = routines[i].copyWith(order: i); // Update order
+
+        await editRoutine(
+          updatedRoutine.id,
+          updatedRoutine.name,
+          updatedRoutine.duration,
+          updatedRoutine.order,
+          updatedRoutine.days,
+        );
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Routine order updated successfully!')),
+      );
+    } catch (e) {
+      print('Failed to update routine order: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update routine order')),
+      );
+    }
   }
 
   // Confirm Delete Dialog
@@ -474,6 +513,22 @@ class _SettingState extends ConsumerState<Setting> {
 
 // Helper to build day circles
   Widget _buildDayCircles(Routine routine, ColorScheme colorScheme) {
+    // Map of short day names to full names
+    final Map<String, String> dayMap = {
+      'Mon': 'Monday',
+      'Tue': 'Tuesday',
+      'Wed': 'Wednesday',
+      'Thu': 'Thursday',
+      'Fri': 'Friday',
+      'Sat': 'Saturday',
+      'Sun': 'Sunday'
+    };
+
+    // Convert short form days (if any) to full names for comparison
+    final List<String> routineDays =
+        routine.days.map((shortDay) => dayMap[shortDay] ?? shortDay).toList();
+
+    // List of full day names to render the UI in order
     const daysOfWeek = [
       'Sunday',
       'Monday',
@@ -487,20 +542,23 @@ class _SettingState extends ConsumerState<Setting> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: daysOfWeek.map((day) {
-        final isSelected = routine.days.contains(day);
+        // Check if the current day is selected
+        final bool isSelected = routineDays.contains(day);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: CircleAvatar(
             radius: 10,
             backgroundColor: isSelected
-                ? colorScheme.primary
-                : colorScheme.onSurface.withOpacity(0.2),
+                ? colorScheme.primary // Selected day color
+                : colorScheme.onSurface
+                    .withOpacity(0.2), // Unselected day color
             child: Text(
-              day.substring(0, 1),
+              day.substring(0, 1), // First letter of the day
               style: TextStyle(
-                color:
-                    isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                color: isSelected
+                    ? colorScheme.onPrimary // Text color for selected days
+                    : colorScheme.onSurface, // Text color for unselected days
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
