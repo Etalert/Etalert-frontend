@@ -1,3 +1,4 @@
+import 'package:frontend/services/data/routine/create_routine.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:frontend/services/data/user/edit_user_info.dart';
 import 'package:frontend/services/data/routine/get_routine.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/services/data/routine/edit_routine.dart';
+import 'package:frontend/services/data/routine/delete_routine.dart';
 
 class Setting extends ConsumerStatefulWidget {
   final String googleId;
@@ -66,15 +68,14 @@ class _SettingState extends ConsumerState<Setting> {
         isLoading = true;
       });
 
-      // Fetch routines from API
       final List<Routine> fetchedRoutines =
           await getAllRoutines(widget.googleId);
-      print('Fetched routines: $fetchedRoutines'); // Debug log
 
       for (var routine in fetchedRoutines) {
-        print('Loaded Routine: ${routine.toJson()}'); // Ensure ID is present
+        print(
+            'Loaded Routine: ${routine.toJson()}'); // Debug log to confirm data
       }
-      // Check if routines are valid and assign them
+
       if (mounted) {
         setState(() {
           routines = fetchedRoutines;
@@ -116,17 +117,8 @@ class _SettingState extends ConsumerState<Setting> {
     }
   }
 
-  void _editRoutine(String routineId, Routine updatedRoutine) async {
+  Future<void> _editRoutine(String routineId, Routine updatedRoutine) async {
     try {
-      if (routineId.isEmpty) {
-        print('Error: Routine ID is empty before calling the API');
-        throw Exception('Routine ID cannot be empty.');
-      }
-
-      print('Sending update request for routine ID: $routineId');
-      print('Updated routine data: ${updatedRoutine.toJson()}');
-
-      // Call the API to edit the routine
       await editRoutine(
         routineId,
         updatedRoutine.name,
@@ -135,13 +127,8 @@ class _SettingState extends ConsumerState<Setting> {
         updatedRoutine.days,
       );
 
-      // Update the local state to reflect changes immediately
-      setState(() {
-        final index = routines.indexWhere((r) => r.id == routineId);
-        if (index != -1) {
-          routines[index] = updatedRoutine; // Update the routine in the list
-        }
-      });
+      // Reload routines to reflect the changes
+      await _loadRoutines();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Routine updated successfully!')),
@@ -265,13 +252,144 @@ class _SettingState extends ConsumerState<Setting> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Your Routines',
-          style: TextStyle(
-            color: colorScheme.primary,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Your Routines',
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              color: colorScheme.primary,
+              // Inside the IconButton's onPressed callback
+              onPressed: () async {
+                final result = await showDialog<Map<String, dynamic>>(
+                  context: context,
+                  builder: (BuildContext context) {
+                    final TextEditingController nameController =
+                        TextEditingController();
+                    final TextEditingController durationController =
+                        TextEditingController();
+                    Set<String> selectedDays = {}; // Store selected days
+
+                    return StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return AlertDialog(
+                          title: const Text('Add Routine'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                    labelText: 'Routine Name'),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: durationController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                    labelText: 'Duration (minutes)'),
+                              ),
+                              const SizedBox(height: 16),
+                              Wrap(
+                                spacing: 8,
+                                children: [
+                                  'Mon',
+                                  'Tue',
+                                  'Wed',
+                                  'Thu',
+                                  'Fri',
+                                  'Sat',
+                                  'Sun'
+                                ].map((day) {
+                                  final bool isSelected =
+                                      selectedDays.contains(day);
+                                  return FilterChip(
+                                    label: Text(day),
+                                    selected: isSelected,
+                                    onSelected: (bool value) {
+                                      setState(() {
+                                        if (value) {
+                                          selectedDays.add(day);
+                                        } else {
+                                          selectedDays.remove(day);
+                                        }
+                                      });
+                                    },
+                                    backgroundColor:
+                                        Colors.grey[300], // Default color
+                                    selectedColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary, // Highlighted color
+                                    labelStyle: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(context), // Cancel button
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                if (nameController.text.isNotEmpty &&
+                                    int.tryParse(durationController.text) !=
+                                        null) {
+                                  Navigator.pop(context, {
+                                    'name': nameController.text,
+                                    'duration':
+                                        int.parse(durationController.text),
+                                    'days': selectedDays.toList(),
+                                  });
+                                }
+                              },
+                              child: const Text('Add'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+
+                if (result != null) {
+                  try {
+                    await createRoutine(
+                      widget.googleId,
+                      result['name'],
+                      result['duration'],
+                      routines.length + 1,
+                      result['days'], // Pass selected days
+                    );
+
+                    await _loadRoutines(); // Reload routines
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Routine added successfully!')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to add routine')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Expanded(
@@ -288,7 +406,18 @@ class _SettingState extends ConsumerState<Setting> {
                           style: TextStyle(color: colorScheme.primary),
                         ),
                         subtitle: Text('${routine.duration} mins'),
-                        trailing: _buildDayCircles(routine, colorScheme),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildDayCircles(
+                                routine, colorScheme), // Day circles
+                            IconButton(
+                              icon:
+                                  const Icon(Icons.delete, color: Colors.grey),
+                              onPressed: () => _confirmDelete(context, routine),
+                            ),
+                          ],
+                        ),
                         onTap: () => _showTaskDialog(context, routine),
                       ),
                     );
@@ -299,9 +428,52 @@ class _SettingState extends ConsumerState<Setting> {
     );
   }
 
+  // Confirm Delete Dialog
+  void _confirmDelete(BuildContext context, Routine routine) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Routine'),
+        content: Text('Are you sure you want to delete "${routine.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _deleteRoutine(routine.id); // Delete the routine
+              Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Delete Routine and Update State
+  Future<void> _deleteRoutine(String routineId) async {
+    print(routineId);
+    try {
+      await deleteRoutine(routineId); // Call API to delete the routine
+      setState(() {
+        routines.removeWhere(
+            (routine) => routine.id == routineId); // Remove locally
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Routine deleted successfully!')),
+      );
+    } catch (e) {
+      print('Delete failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete routine')),
+      );
+    }
+  }
+
 // Helper to build day circles
   Widget _buildDayCircles(Routine routine, ColorScheme colorScheme) {
-    // Days of the week in order
     const daysOfWeek = [
       'Sunday',
       'Monday',
@@ -320,13 +492,12 @@ class _SettingState extends ConsumerState<Setting> {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2.0),
           child: CircleAvatar(
-            radius: 12, // Adjust size as needed
+            radius: 10,
             backgroundColor: isSelected
-                ? colorScheme.primary // Selected day color
-                : colorScheme.onSurface
-                    .withOpacity(0.2), // Unselected day color
+                ? colorScheme.primary
+                : colorScheme.onSurface.withOpacity(0.2),
             child: Text(
-              day.substring(0, 1), // Display the first letter of the day
+              day.substring(0, 1),
               style: TextStyle(
                 color:
                     isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
@@ -344,7 +515,7 @@ class _SettingState extends ConsumerState<Setting> {
     print('Routine passed to dialog: ${routine.toJson()}');
 
     // Initialize the selected days with the routine's days
-    Set<String> selectedDays = routine.days.toSet();
+    Set<String> selectedDays = Set<String>.from(routine.days);
 
     final colorScheme = Theme.of(context).colorScheme;
 

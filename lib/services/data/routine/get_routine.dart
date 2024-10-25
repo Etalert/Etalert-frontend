@@ -9,7 +9,9 @@ Future<List<Routine>> getAllRoutines(String googleId) async {
     if (response.statusCode == 200 && response.data != null) {
       final List<dynamic> data = response.data;
 
+      // Ensure JSON is correctly mapped to Routine instances
       return data.map((json) {
+        print('Creating Routine from JSON: $json'); // Debug log for each entry
         return Routine.fromJson(Map<String, dynamic>.from(json));
       }).toList();
     } else {
@@ -20,5 +22,6 @@ Future<List<Routine>> getAllRoutines(String googleId) async {
     rethrow;
   }
 }
+
 
 

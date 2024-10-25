@@ -13,28 +13,37 @@ class Routine {
     required this.days,
   });
 
-  // Updated fromJson to handle missing fields
+  // Factory method to create a Routine from JSON
   factory Routine.fromJson(Map<String, dynamic> json) {
-    // Use a fallback ID (name + order) if the actual ID is missing
-    final fallbackId = '${json['Name'] ?? ''}_${json['Order'] ?? 0}';
-    // Print the JSON response to ensure correct data
-    print('Creating Routine from JSON: $json');
+    final id = json['Id'] ?? json['id'] ?? '';
+    final name = json['Name'] ?? json['name'] ?? '';
+    final duration = json['Duration'] ?? json['duration'] ?? 0;
+    final order = json['Order'] ?? json['order'] ?? 0;
+    final days = _parseDays(json['Days'] ?? json['days']);
+
     return Routine(
-      id: (json['id'] ?? fallbackId) as String, // Use fallback ID if necessary
-      name: (json['Name'] ?? 'Unnamed') as String,
-      duration: (json['Duration'] ?? 0) as int,
-      order: (json['Order'] ?? 0) as int,
-      days: List<String>.from(json['days'] ?? []),
+      id: id,
+      name: name,
+      duration: duration,
+      order: order,
+      days: days,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'duration': duration,
-      'order': order,
-      'days': days,
-    };
+  static List<String> _parseDays(dynamic daysData) {
+    if (daysData == null) return [];
+    if (daysData is List && daysData.isNotEmpty) {
+      return daysData.map((e) => e.toString()).toList();
+    }
+    return [];
   }
+
+  // Convert Routine object to JSON
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'duration': duration,
+        'order': order,
+        'days': days,
+      };
 }
