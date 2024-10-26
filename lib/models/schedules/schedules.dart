@@ -15,6 +15,7 @@ class Schedule {
   final int priority;
   final bool isHaveLocation;
   final bool isFirstSchedule;
+  final String? recurrence;
 
   Schedule({
     required this.id,
@@ -31,6 +32,7 @@ class Schedule {
     required this.priority,
     required this.isHaveLocation,
     required this.isFirstSchedule,
+    this.recurrence,
   });
 
   static double _parseDouble(dynamic value) {
@@ -60,6 +62,7 @@ class Schedule {
       priority: json['Priority'],
       isHaveLocation: json['IsHaveLocation'],
       isFirstSchedule: json['IsFirstSchedule'],
+      recurrence: json['Recurrence'],
     );
   }
 }

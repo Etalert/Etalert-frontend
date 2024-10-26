@@ -3,6 +3,17 @@ import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
 
+class EnumRecurrence {
+  final String value;
+  const EnumRecurrence._(this.value);
+
+  static const EnumRecurrence none = EnumRecurrence._('none');
+  static const EnumRecurrence daily = EnumRecurrence._('daily');
+  static const EnumRecurrence weekly = EnumRecurrence._('weekly');
+  static const EnumRecurrence monthly = EnumRecurrence._('monthly');
+  static const EnumRecurrence yearly = EnumRecurrence._('yearly');
+}
+
 class ScheduleDialog extends StatefulWidget {
   final DateTime selectedDay;
   final Function(Map<String, dynamic>) onSave;
@@ -29,6 +40,7 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
   bool isLocationExpanded = false;
   SelectedLocation originLocation = SelectedLocation();
   SelectedLocation destinationLocation = SelectedLocation();
+  EnumRecurrence selectedRecurrence = EnumRecurrence.none;
 
   @override
   void initState() {
@@ -451,6 +463,42 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                 ],
               ),
               const SizedBox(height: 20),
+            Row(
+              children: [
+                Icon(Icons.repeat, color: colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<EnumRecurrence>(
+                    value: selectedRecurrence,
+                    decoration: InputDecoration(
+                      border: customBorder,
+                      enabledBorder: customBorder,
+                      focusedBorder: customBorder,
+                      labelText: 'Recurrence',
+                      labelStyle: TextStyle(color: colorScheme.primary),
+                    ),
+                    items: [
+                      EnumRecurrence.none,
+                      EnumRecurrence.daily,
+                      EnumRecurrence.weekly,
+                      EnumRecurrence.monthly,
+                      EnumRecurrence.yearly,
+                    ].map((EnumRecurrence recurrence) {
+                      return DropdownMenuItem<EnumRecurrence>(
+                        value: recurrence,
+                        child: Text(recurrence.value.capitalize()),
+                      );
+                    }).toList(),
+                    onChanged: (EnumRecurrence? newValue) {
+                      setState(() {
+                        selectedRecurrence = newValue!;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+              const SizedBox(height: 20),
               _buildEndTimeSection(context, theme),
               _buildLocationSection(context, theme),
               const SizedBox(height: 20),
@@ -532,6 +580,7 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                             destinationLocation.selectedLatLng?.longitude,
                         'isHaveLocation': locationController.text.isNotEmpty &&
                             originLocationController.text.isNotEmpty,
+                        'recurrence' : selectedRecurrence.value,
                       };
 
                       widget.onSave(eventDetails);
@@ -546,5 +595,11 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
         ),
       ),
     );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${this.substring(1)}";
   }
 }
