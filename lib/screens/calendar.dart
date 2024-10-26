@@ -485,25 +485,6 @@ class _CalendarState extends ConsumerState<Calendar> {
         recurrence: recurrence,
       );
 
-      // Log the ScheduleReq object
-      print('ScheduleReq object to be sent to backend:');
-      print('googleId: ${req.googleId}');
-      print('name: ${req.name}');
-      print('date: ${req.date}');
-      print('startTime: ${req.startTime}');
-      print('endTime: ${req.endTime}');
-      print('isHaveEndTime: ${req.isHaveEndTime}');
-      print('oriName: ${req.oriName}');
-      print('oriLatitude: ${req.oriLatitude}');
-      print('oriLongtitude: ${req.oriLongtitude}');
-      print('desName: ${req.desName}');
-      print('destLatitude: ${req.destLatitude}');
-      print('destLongtitude: ${req.destLongtitude}');
-      print('isHaveLocation: ${req.isHaveLocation}');
-      print('isFirstSchedule: ${req.isFirstSchedule}');
-      print('recurrence: ${req.recurrence}');
-
-      // Call the schedule provider to add the schedule
       await ref
           .read(scheduleProvider(widget.googleId).notifier)
           .addSchedule(req);
@@ -851,11 +832,6 @@ class _CalendarState extends ConsumerState<Calendar> {
             isHaveLocation,
             recurrence,
           );
-
-          print('ScheduleReq object toa be sent to backend:');
-          print(taskName);
-          print(dateString);
-          print(recurrence);
 
           // final notificationId =
           //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
