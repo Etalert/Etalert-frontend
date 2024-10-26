@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/models/web_socket_message/web_socket_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
+// import 'package:web_socket_channel/status.dart' as status;
 
 class WebSocketService {
   WebSocketChannel? channel;
@@ -86,7 +86,8 @@ class WebSocketService {
   }
 
   void closeWebSocket() {
-    channel?.sink.close(status.goingAway);
+    // channel?.sink.close(status.goingAway);
+    channel?.sink.close(1000);
     reconnectTimer?.cancel();
   }
 }
