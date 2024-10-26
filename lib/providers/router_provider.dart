@@ -8,7 +8,9 @@ import 'package:frontend/screens/login.dart';
 import 'package:frontend/screens/bedtime.dart';
 import 'package:frontend/screens/name_setup.dart';
 import 'package:frontend/screens/preference.dart';
+import 'package:frontend/screens/routine_report.dart';
 import 'package:frontend/screens/setting.dart';
+import 'package:frontend/screens/weekly_reports.dart';
 import 'package:go_router/go_router.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -105,6 +107,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     GoRoute(
       path: '/editinfo',
       builder: (context, state) => const Editinfo(),
-    )
+    ),
+    GoRoute(
+      path: '/weeklyreports/:googleId',
+      builder: (context, state) {
+        final googleId = state.params['googleId']!;
+        if (googleId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid googleId')),
+          );
+        }
+        return WeeklyReports(
+          googleId: googleId,
+        );
+      },
+    ),
   ]);
 });
