@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/components/weekly_report_select.dart';
 import 'package:frontend/models/routine/weekly_report_list.dart';
-import 'package:frontend/services/data/routine/weekly_reports.dart';
+import 'package:frontend/services/data/routine/weekly_reports_list.dart';
 
 class WeeklyReports extends StatefulWidget {
   final String googleId;

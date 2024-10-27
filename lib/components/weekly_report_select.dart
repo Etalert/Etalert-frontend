@@ -26,7 +26,8 @@ class _WeeklyReportSelectState extends State<WeeklyReportSelect> {
           MaterialPageRoute(
             builder: (context) => RoutineReport(
                 googleId: widget.googleId,
-                weekDate: '${widget.startDate} - ${widget.endDate}'),
+                startDate: widget.startDate,
+                endDate: widget.endDate),
           ),
         );
       },

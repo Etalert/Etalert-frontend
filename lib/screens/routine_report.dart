@@ -1,17 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/routine_report_dropdown.dart';
+import 'package:frontend/models/routine/weekly_report.dart';
+import 'package:frontend/services/data/routine/weekly_report.dart';
 
 class RoutineReport extends StatefulWidget {
   final String googleId;
-  final String weekDate;
+  final String startDate;
+  final String endDate;
   const RoutineReport(
-      {super.key, required this.googleId, required this.weekDate});
+      {super.key,
+      required this.googleId,
+      required this.startDate,
+      required this.endDate});
 
   @override
   State<RoutineReport> createState() => _RoutineReportState();
 }
 
 class _RoutineReportState extends State<RoutineReport> {
+  List<WeeklyReport> weeklyReport = [];
+
+  getWeeklyReportData(String googleId, String startDate) async {
+    var report = await getWeeklyReport(googleId, startDate);
+    setState(() {
+      weeklyReport = report!;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getWeeklyReportData(widget.googleId, widget.startDate);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,7 +70,7 @@ class _RoutineReportState extends State<RoutineReport> {
                     Icon(Icons.calendar_today_rounded,
                         color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 12),
-                    Text(widget.weekDate,
+                    Text('${widget.startDate} - ${widget.endDate}',
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 18,
@@ -75,25 +96,15 @@ class _RoutineReportState extends State<RoutineReport> {
               ),
             ),
             const SizedBox(height: 20),
-            const Expanded(
+            Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    RoutineReportDropdown(
-                        id: '1',
-                        routineName: 'Eat Breakfast',
-                        averageSkewedTime: 10,
-                        isLate: false),
-                    RoutineReportDropdown(
-                        id: '2',
-                        routineName: 'Take a shower',
-                        averageSkewedTime: 14,
-                        isLate: true),
-                    RoutineReportDropdown(
-                        id: '3',
-                        routineName: 'Play with dog',
-                        averageSkewedTime: 1,
-                        isLate: true),
+                    ...weeklyReport.map((e) {
+                      return RoutineReportDropdown(
+                        weeklyReport: e,
+                      );
+                    }).toList(),
                   ],
                 ),
               ),
