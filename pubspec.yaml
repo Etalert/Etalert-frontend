@@ -88,6 +88,7 @@ flutter:
     - ./assets/google.png
     - ./assets/IMG_1274.JPG
     - ./assets/mixkit-warning-alarm-buzzer-991.mp3
+    - ./assets/small_icon.png
     - .env
     # - images/a_dot_ham.jpeg
 
