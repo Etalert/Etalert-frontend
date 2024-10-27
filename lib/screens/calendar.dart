@@ -9,10 +9,12 @@ import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
+import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/services/websocket/web_socket_service.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -23,6 +25,8 @@ import 'package:frontend/services/data/schedules/get_schedules.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
 import 'package:frontend/services/notification/alarm_manager.dart';
 import 'dart:async';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 class Calendar extends ConsumerStatefulWidget {
   final String googleId;
@@ -51,6 +55,11 @@ class _CalendarState extends ConsumerState<Calendar> {
   late SelectedLocation destinationLocation;
   final NotificationsHandler _notificationsHandler = NotificationsHandler();
   late final WebSocketService webSocketService;
+  StreamSubscription? _alarmSubscription;
+  bool _isAlarmInitialized = false;
+  late GoRouter _router;
+  bool _isListenerAdded = false;
+  late VoidCallback? _routerListener;
 
   @override
   void initState() {
@@ -58,6 +67,16 @@ class _CalendarState extends ConsumerState<Calendar> {
     _notificationsHandler.initialize();
     _setInitialLocation();
     _initializeAlarm();
+
+    // Initialize the router listener here
+    _routerListener = () {
+      if (mounted && context.mounted) {
+        final location = GoRouter.of(context).location;
+        if (location == '/${widget.googleId}') {
+          _reinitializeAlarm();
+        }
+      }
+    };
 
     webSocketService = WebSocketService(
       googleId: widget.googleId,
@@ -110,8 +129,102 @@ class _CalendarState extends ConsumerState<Calendar> {
 
   @override
   void dispose() {
+    // Clean up the listener
+    if (_isListenerAdded && _routerListener != null) {
+      _router.removeListener(_routerListener!);
+      _isListenerAdded = false;
+    }
+
     webSocketService.closeWebSocket();
+
+    // Cancel alarm subscription
+    _alarmSubscription?.cancel();
+    _alarmSubscription = null;
+    _isAlarmInitialized = false;
+
+    // Dispose other controllers
+    mapController?.dispose();
+    originLocationController.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Get router instance
+    _router = GoRouter.of(context);
+
+    // Add the GoRouter listener if not already added
+    if (!_isListenerAdded && _routerListener != null) {
+      _router.addListener(_routerListener!);
+      _isListenerAdded = true;
+    }
+  }
+
+  // Update the reset method to handle nullable _routerListener
+  void _resetRouterListener() {
+    if (_isListenerAdded && _routerListener != null) {
+      _router.removeListener(_routerListener!);
+      _isListenerAdded = false;
+    }
+
+    _routerListener = () {
+      if (mounted && context.mounted) {
+        final location = GoRouter.of(context).location;
+        if (location == '/${widget.googleId}') {
+          _reinitializeAlarm();
+        }
+      }
+    };
+
+    if (_routerListener != null) {
+      _router.addListener(_routerListener!);
+      _isListenerAdded = true;
+    }
+  }
+
+  Future<void> _initializeAlarm() async {
+    // Return early if alarm is already initialized
+    if (_isAlarmInitialized) return;
+
+    try {
+      // Initialize the alarm
+      await Alarm.init();
+
+      // Cancel any existing subscription
+      await _alarmSubscription?.cancel();
+
+      // Create a new subscription using the stream getter
+      _alarmSubscription = Alarm.ringStream.stream.listen(
+        (alarmSettings) {
+          if (mounted) _showAlarmDialog(alarmSettings);
+        },
+        onError: (error) {
+          print('Error in alarm stream: $error');
+          // Handle error appropriately
+        },
+        onDone: () {
+          print('Alarm stream completed');
+          // Handle stream completion if needed
+        },
+      );
+
+      _isAlarmInitialized = true;
+      print('Alarm initialized successfully');
+    } catch (e) {
+      print('Error initializing alarm: $e');
+      _isAlarmInitialized = false;
+      // Handle initialization error appropriately
+    }
+  }
+
+  void _reinitializeAlarm() {
+    _isAlarmInitialized = false;
+    _alarmSubscription?.cancel();
+    _alarmSubscription = null;
+    _initializeAlarm();
   }
 
   Future<void> _setInitialLocation() async {
@@ -181,46 +294,49 @@ class _CalendarState extends ConsumerState<Calendar> {
     }
   }
 
-  Future<void> _initializeAlarm() async {
-    await Alarm.init();
-    Alarm.ringStream.stream.listen((alarmSettings) {
-      _showAlarmDialog(alarmSettings);
-    });
-  }
-
   Future<void> setAlarm(
       int id, DateTime dateTime, String title, String body) async {
-    final alarmSettings = AlarmSettings(
-      id: id,
-      dateTime: dateTime,
-      assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-      notificationTitle: title,
-      notificationBody: body,
-      loopAudio: true,
-      vibrate: true,
-      fadeDuration: 3.0,
-      enableNotificationOnKill: true,
-    );
+    try {
+      final alarmSettings = AlarmSettings(
+        id: id,
+        dateTime: dateTime,
+        assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
+        notificationTitle: title,
+        notificationBody: body,
+        loopAudio: true,
+        vibrate: true,
+        fadeDuration: 3.0,
+        enableNotificationOnKill: true,
+      );
 
-    await Alarm.set(alarmSettings: alarmSettings);
-    print('Alarm set for $dateTime with ID $id');
+      await Alarm.set(alarmSettings: alarmSettings);
+      print('Alarm set successfully for $dateTime with ID $id');
+    } catch (e) {
+      print('Error setting alarm: $e');
+      // Handle error appropriately
+    }
   }
 
   void _showAlarmDialog(AlarmSettings alarmSettings) {
+    if (!mounted) return;
+
     final dialogCompleter = Completer<void>();
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        // Auto-dismiss timer
         Timer(const Duration(minutes: 2), () {
           if (context.mounted && !dialogCompleter.isCompleted) {
             Navigator.of(context).pop();
             dialogCompleter.complete();
           }
         });
+
         return AlertDialog(
-          title: Text(alarmSettings.notificationTitle),
-          content: Text(alarmSettings.notificationBody),
+          title: Text(alarmSettings.notificationTitle ?? 'Alarm'),
+          content:
+              Text(alarmSettings.notificationBody ?? 'Time for your schedule!'),
           actionsAlignment: MainAxisAlignment.center,
           actions: <Widget>[
             Container(
@@ -297,6 +413,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
+            'recurrence': schedule.recurrence,
           };
         } else {
           event = {
@@ -311,6 +428,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
+            'recurrnce': schedule.recurrence,
           };
         }
 
@@ -324,38 +442,61 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   Future<void> _createSchedule(
-      String scheduleName,
-      String date,
-      String startTime,
-      String? endTime,
-      bool isHaveEndTime,
-      String? oriName,
-      double? orilat,
-      double? orilng,
-      String? desName,
-      double? deslat,
-      double? deslng,
-      bool isFirstSchedule,
-      DateTime selectedDay,
-      bool isHaveLocation) async {
-    final req = ScheduleReq(
-      googleId: widget.googleId,
-      name: scheduleName,
-      date: date,
-      startTime: startTime,
-      endTime: endTime,
-      isHaveEndTime: isHaveEndTime,
-      oriName: oriName,
-      oriLatitude: orilat,
-      oriLongtitude: orilng,
-      desName: desName,
-      destLatitude: deslat,
-      destLongtitude: deslng,
-      isHaveLocation: isHaveLocation,
-      isFirstSchedule: isFirstSchedule,
-      recurrence: EnumRecurrence.none.value,
-    );
-    await ref.read(scheduleProvider(widget.googleId).notifier).addSchedule(req);
+    String scheduleName,
+    String date,
+    String startTime,
+    String? endTime,
+    bool isHaveEndTime,
+    String? oriName,
+    double? orilat,
+    double? orilng,
+    String? desName,
+    double? deslat,
+    double? deslng,
+    bool isFirstSchedule,
+    DateTime selectedDay,
+    bool isHaveLocation,
+    String recurrence,
+  ) async {
+    try {
+      final bool isHaveLocation = oriName != null &&
+          desName != null &&
+          orilat != null &&
+          orilng != null &&
+          deslat != null &&
+          deslng != null;
+
+      // Create the ScheduleReq object
+      final req = ScheduleReq(
+        googleId: widget.googleId,
+        name: scheduleName,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+        isHaveEndTime: isHaveEndTime,
+        oriName: oriName,
+        oriLatitude: orilat,
+        oriLongtitude: orilng,
+        desName: desName,
+        destLatitude: deslat,
+        destLongtitude: deslng,
+        isHaveLocation: isHaveLocation,
+        isFirstSchedule: isFirstSchedule,
+        recurrence: recurrence,
+      );
+
+      await ref
+          .read(scheduleProvider(widget.googleId).notifier)
+          .addSchedule(req);
+
+      print('Schedule created successfully!');
+    } catch (e) {
+      // Handle any errors and print them for debugging
+      print('Error creating schedule: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to create schedule.')),
+      );
+    }
   }
 
   @override
@@ -593,6 +734,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             Text('Date: ${event['date']}'),
             Text(
                 'Time: ${event['time'].format(context)} ${event['isHaveEndTime'] ? '- ' + event['endTime'].format(context) : ''}'),
+            Text('Recurrence: ${event['recurrence'] ?? 'None'}'),
             TextField(
               controller: originLocationController,
               style: TextStyle(
@@ -663,6 +805,7 @@ class _CalendarState extends ConsumerState<Calendar> {
           final oriLocationName = eventDetails['originLocation'];
           final desLocationName = eventDetails['destinationLocation'];
           final isHaveLocation = eventDetails['isHaveLocation'];
+          final recurrence = eventDetails['recurrence'] ?? '';
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
@@ -687,7 +830,33 @@ class _CalendarState extends ConsumerState<Calendar> {
             isRoutineChecked,
             _selectedDay,
             isHaveLocation,
+            recurrence,
           );
+
+          // final notificationId =
+          //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
+
+          // await _notificationsHandler.showNotification(
+          //   AlarmSettings(
+          //     id: notificationId,
+          //     dateTime: scheduledDateTime,
+          //     notificationTitle: taskName,
+          //     notificationBody: "Your schedule is about to start!",
+          //     assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
+          //     loopAudio: true,
+          //     enableNotificationOnKill: true,
+          //   ),
+          // );
+
+          // final alarmId = DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
+
+          // await AlarmManager.setAlarmWithAutoStop(
+          //   id: alarmId,
+          //   dateTime: scheduledDateTime,
+          //   title: taskName,
+          //   body: "Your schedule is about to start!",
+          //   flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+          // );
 
           setState(() {});
         },

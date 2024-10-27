@@ -4,11 +4,13 @@ import 'package:frontend/providers/tasklist_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class AddRoutine extends ConsumerWidget {
-  String googleId;
+  final String googleId;
+  final String returnPath;
 
-  AddRoutine(
+  const AddRoutine(
       {Key? key,
       required this.googleId,
+      required this.returnPath,
       required TaskListNotifier taskListNotifier})
       : super(key: key);
 
@@ -85,7 +87,7 @@ class AddRoutine extends ConsumerWidget {
                         if (taskName.isNotEmpty) {
                           final task = Task(name: taskName, duration: duration);
                           taskListNotifier.addTask(task);
-                          context.pop();
+                          context.go(returnPath);
                         } else {
                           // Show error message
                         }

@@ -73,20 +73,37 @@ final routerProvider = Provider<GoRouter>((ref) {
       path: '/addroutine/:googleId',
       builder: (context, state) {
         final googleId = state.params['googleId']!;
+        final returnPath = state.queryParams['returnPath'] ?? '/';
         final taskListNotifier = TaskListNotifier();
+
         if (googleId.isEmpty) {
           return const Scaffold(
             body: Center(child: Text('Invalid googleId')),
           );
         }
+
         return AddRoutine(
-            googleId: googleId, taskListNotifier: taskListNotifier);
+          googleId: googleId,
+          returnPath: returnPath,
+          taskListNotifier: taskListNotifier,
+        );
       },
     ),
     GoRoute(
-      path: '/setting',
-      builder: (context, state) => const Setting(),
-    ),
+        path: '/setting/:googleId',
+        builder: (context, state) {
+          final googleId = state.params['googleId']!;
+          if (googleId.isEmpty) {
+            return const Scaffold(
+              body: Center(
+                child: Text('Invalid googleId'),
+              ),
+            );
+          }
+          return Setting(
+            googleId: googleId,
+          );
+        }),
     GoRoute(
       path: '/editinfo',
       builder: (context, state) => const Editinfo(),

@@ -55,7 +55,7 @@ class Sidebar extends StatelessWidget {
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () {
-                // routeToPage('replace this with setting page route');
+                routeToPage('/setting/$googleId');
               },
             ),
             // Add more list tiles as needed
