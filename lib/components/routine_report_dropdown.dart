@@ -32,6 +32,11 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
     return isLate;
   }
 
+  String shortedDay(String day) {
+    String shortedDay = day.substring(0, 3);
+    return shortedDay;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -53,15 +58,52 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    widget.weeklyReport.name,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSecondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.weeklyReport.name,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          'Repeated: ',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (widget.weeklyReport.days.length == 7)
+                          Text(
+                            'Everyday',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSecondary,
+                              fontSize: 13,
+                            ),
+                          )
+                        else
+                          ...widget.weeklyReport.days.map((e) {
+                            return Text(
+                              widget.weeklyReport.days.last == e
+                                  ? shortedDay(e)
+                                  : '${shortedDay(e)}, ',
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).colorScheme.onSecondary,
+                                fontSize: 13,
+                              ),
+                            );
+                          }).toList(),
+                      ],
+                    ),
+                  ],
+                )),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
