@@ -4,7 +4,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:alarm/alarm.dart';
 
 class NotificationsHandler {
-  static final NotificationsHandler _instance = NotificationsHandler._internal();
+  static final NotificationsHandler _instance =
+      NotificationsHandler._internal();
 
   factory NotificationsHandler() {
     return _instance;
@@ -14,6 +15,17 @@ class NotificationsHandler {
 
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  Future<void> requestPermissions() async {
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+  }
 
   Future<void> initialize() async {
     await _initializeNotifications();

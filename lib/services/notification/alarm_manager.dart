@@ -7,14 +7,15 @@ class AlarmManager {
   static final Set<int> _activeAlarms = {};
 
   static Set<int> get activeAlarms => _activeAlarms;
-  
+
   // Helper method to generate consistent alarm ID from schedule
   static int generateAlarmId(String scheduleId) {
     return scheduleId.hashCode % 0x7FFFFFFF;
   }
 
   // Helper method to generate consistent alarm ID from request
-  static int generateAlarmIdFromRequest(String date, String startTime, String name) {
+  static int generateAlarmIdFromRequest(
+      String date, String startTime, String name) {
     final idString = '$date-$startTime-$name';
     return idString.hashCode % 0x7FFFFFFF;
   }
@@ -29,15 +30,15 @@ class AlarmManager {
       id: alarmId,
       dateTime: dateTime,
       assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-      loopAudio: true,
-      vibrate: true,
       notificationTitle: title,
       notificationBody: body,
-      fadeDuration: 3.0,
+      loopAudio: true,
+      vibrate: true,
       enableNotificationOnKill: true,
     );
-    
+
     await Alarm.set(alarmSettings: alarmSettings);
+    print('Alarm set for: $dateTime with ID: $alarmId'); // Debug print
     _activeAlarms.add(alarmId);
   }
 
@@ -59,7 +60,7 @@ class AlarmManager {
       fadeDuration: 3.0,
       enableNotificationOnKill: true,
     );
-    
+
     await Alarm.set(alarmSettings: alarmSettings);
     _activeAlarms.add(alarmId);
 
@@ -80,7 +81,8 @@ class AlarmManager {
   }
 
   static Future<void> stopAlarm(int alarmId) async {
-    if (!_activeAlarms.contains(alarmId)) return;  // Guard to prevent redundant stops
+    if (!_activeAlarms.contains(alarmId))
+      return; // Guard to prevent redundant stops
 
     print('[AlarmManager] Stopping alarm with id: $alarmId');
     await Alarm.stop(alarmId);
@@ -93,4 +95,4 @@ class AlarmManager {
     _alarmTimers[alarmId]?.cancel();
     _alarmTimers.remove(alarmId);
   }
-}  
+}
