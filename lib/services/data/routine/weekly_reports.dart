@@ -10,9 +10,10 @@ Future<List<WeeklyReportList>?> getWeeklyReportList(String googleId) async {
     if (response.statusCode == 200) {
       final data = response.data;
       List<dynamic> res = json.decode(json.encode(data));
-      return res
+      List<WeeklyReportList> weeklyReportList = res
           .map<WeeklyReportList>((json) => WeeklyReportList.fromJson(json))
           .toList();
+      return weeklyReportList;
     }
   } catch (e) {
     rethrow;

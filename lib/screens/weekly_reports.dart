@@ -14,16 +14,20 @@ class WeeklyReports extends StatefulWidget {
 
 class _WeeklyReportsState extends State<WeeklyReports> {
   List<WeeklyReportList>? weeklyReporDates;
+  bool isLoading = true;
 
-  Future<void> getWeeklyReportDateList(String googleId) async {
+  getWeeklyReportDateList(String googleId) async {
     weeklyReporDates = await getWeeklyReportList(googleId);
-    setState(() {});
+    setState(() {
+      weeklyReporDates = weeklyReporDates;
+      isLoading = false;
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    getWeeklyReportList(widget.googleId);
+    getWeeklyReportDateList(widget.googleId);
   }
 
   @override
@@ -37,28 +41,27 @@ class _WeeklyReportsState extends State<WeeklyReports> {
             )),
       ),
       drawer: Sidebar(googleId: widget.googleId),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                ...weeklyReporDates?.map((e) {
-                      return WeeklyReportSelect(
-                        googleId: widget.googleId,
-                        startDate: e.startDate,
-                        endDate: e.endDate,
-                      );
-                    }).toList() ??
-                    [
-                      const Center(
-                        child: Text('No weekly reports available'),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : SafeArea(
+              child: weeklyReporDates == null
+                  ? const Center(
+                      child: Text('No weekly reports available'),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: weeklyReporDates!.map((e) {
+                          return WeeklyReportSelect(
+                            googleId: widget.googleId,
+                            startDate: e.startDate,
+                            endDate: e.endDate,
+                          );
+                        }).toList(),
                       ),
-                    ],
-              ],
+                    ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }
