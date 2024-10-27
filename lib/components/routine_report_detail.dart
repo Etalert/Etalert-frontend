@@ -85,12 +85,25 @@ class RoutineReportDetail extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      '${skewness <= 0 ? 'Late' : 'Early'}: ${convertSkewnessToMinutes(skewness)}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSecondary,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${skewness > 0 ? 'Late' : 'Early'}: ',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          convertSkewnessToMinutes(skewness),
+                          style: TextStyle(
+                            color: skewness > 0
+                                ? Colors.red[700]
+                                : Colors.green[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -11,9 +11,9 @@ class WeeklyReportList {
 
   factory WeeklyReportList.fromJson(Map<String, dynamic> json) {
     return WeeklyReportList(
-      id: json['id'],
-      startDate: json['startDate'],
-      endDate: json['endDate'],
+      id: json['Id'],
+      startDate: json['StartDate'],
+      endDate: json['EndDate'],
     );
   }
 }

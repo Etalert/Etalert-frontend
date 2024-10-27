@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/routine_report_detail.dart';
+import 'package:frontend/models/routine/weekly_report.dart';
 
 class RoutineReportDropdown extends StatefulWidget {
-  final int averageSkewedTime;
-  final String routineName;
-  final bool isLate;
-  final String id;
+  final WeeklyReport weeklyReport;
 
   const RoutineReportDropdown({
     super.key,
-    required this.averageSkewedTime,
-    required this.routineName,
-    required this.isLate,
-    required this.id,
+    required this.weeklyReport,
   });
 
   @override
@@ -21,6 +16,26 @@ class RoutineReportDropdown extends StatefulWidget {
 
 class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
   bool _isExpanded = false;
+
+  int get averageSkewedTime {
+    int totalSkewness = 0;
+    for (var element in widget.weeklyReport.details) {
+      totalSkewness += element.skewness;
+    }
+
+    int averageSkewedTime = totalSkewness ~/ widget.weeklyReport.details.length;
+    return averageSkewedTime;
+  }
+
+  bool get isLate {
+    bool isLate = averageSkewedTime > 0;
+    return isLate;
+  }
+
+  String shortedDay(String day) {
+    String shortedDay = day.substring(0, 3);
+    return shortedDay;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,20 +58,57 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    widget.routineName,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSecondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.weeklyReport.name,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSecondary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          'Repeated: ',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (widget.weeklyReport.days.length == 7)
+                          Text(
+                            'Everyday',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSecondary,
+                              fontSize: 13,
+                            ),
+                          )
+                        else
+                          ...widget.weeklyReport.days.map((e) {
+                            return Text(
+                              widget.weeklyReport.days.last == e
+                                  ? shortedDay(e)
+                                  : '${shortedDay(e)}, ',
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).colorScheme.onSecondary,
+                                fontSize: 13,
+                              ),
+                            );
+                          }).toList(),
+                      ],
+                    ),
+                  ],
+                )),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      widget.isLate ? 'Late' : 'Early',
+                      isLate ? 'Late' : 'Early',
                       style: const TextStyle(
                         color: Color.fromARGB(255, 99, 99, 99),
                         fontSize: 12,
@@ -66,11 +118,9 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.averageSkewedTime} ${widget.averageSkewedTime > 1 ? 'mins' : 'min'}',
+                      '$averageSkewedTime ${averageSkewedTime > 1 ? 'mins' : 'min'}',
                       style: TextStyle(
-                          color: widget.isLate
-                              ? Colors.red[700]
-                              : Colors.green[600],
+                          color: isLate ? Colors.red[700] : Colors.green[600],
                           fontSize: 16,
                           fontWeight: FontWeight.w600),
                       textAlign: TextAlign.right,
@@ -101,20 +151,15 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
                     ),
                     Column(
                       children: [
-                        RoutineReportDetail(
-                          date: '28 Oct 2024',
-                          startTime: '08:00',
-                          endTime: '08:30',
-                          actualEndTime: '08:35',
-                          skewness: -5,
-                        ),
-                        RoutineReportDetail(
-                          date: '29 Oct 2024',
-                          startTime: '08:00',
-                          endTime: '08:30',
-                          actualEndTime: '08:20',
-                          skewness: 10,
-                        ),
+                        ...widget.weeklyReport.details.map((e) {
+                          return RoutineReportDetail(
+                            date: e.date,
+                            startTime: e.startTime,
+                            endTime: e.endTime,
+                            actualEndTime: e.actualEndTime,
+                            skewness: e.skewness,
+                          );
+                        }).toList(),
                       ],
                     )
                   ],
