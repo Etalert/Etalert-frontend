@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/components/routine_report_dropdown.dart';
 import 'package:frontend/models/routine/weekly_report.dart';
+import 'package:frontend/screens/setting.dart';
 import 'package:frontend/services/data/routine/weekly_report.dart';
+import 'package:go_router/go_router.dart';
 
 class RoutineReport extends StatefulWidget {
   final String googleId;
@@ -91,15 +93,40 @@ class _RoutineReportState extends State<RoutineReport> {
                         const EdgeInsets.only(top: 30, left: 20, right: 20),
                     child: Row(
                       children: [
-                        Text(
-                          'Routines Report',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSecondary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
+                        Expanded(
+                          child: Text(
+                            'Routines Report',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSecondary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            textAlign: TextAlign.left,
                           ),
-                          textAlign: TextAlign.left,
                         ),
+                        GestureDetector(
+                          onTap: () =>
+                              context.go('/setting/${widget.googleId}'),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Icon(
+                                Icons.edit,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Edit routines',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
                       ],
                     ),
                   ),
