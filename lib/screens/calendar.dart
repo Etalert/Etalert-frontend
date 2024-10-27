@@ -152,36 +152,14 @@ class _CalendarState extends ConsumerState<Calendar> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     // Get router instance
     _router = GoRouter.of(context);
 
-    // Add the GoRouter listener if not already added
+    // Reinitialize alarm on app resume
     if (!_isListenerAdded && _routerListener != null) {
       _router.addListener(_routerListener!);
       _isListenerAdded = true;
-    }
-  }
-
-  // Update the reset method to handle nullable _routerListener
-  void _resetRouterListener() {
-    if (_isListenerAdded && _routerListener != null) {
-      _router.removeListener(_routerListener!);
-      _isListenerAdded = false;
-    }
-
-    _routerListener = () {
-      if (mounted && context.mounted) {
-        final location = GoRouter.of(context).location;
-        if (location == '/${widget.googleId}') {
-          _reinitializeAlarm();
-        }
-      }
-    };
-
-    if (_routerListener != null) {
-      _router.addListener(_routerListener!);
-      _isListenerAdded = true;
+      _reinitializeAlarm(); // Force reinitialization of alarms
     }
   }
 
@@ -199,15 +177,11 @@ class _CalendarState extends ConsumerState<Calendar> {
       // Create a new subscription using the stream getter
       _alarmSubscription = Alarm.ringStream.stream.listen(
         (alarmSettings) {
+          print('Alarm triggered: ${alarmSettings.id}'); // Debug print
           if (mounted) _showAlarmDialog(alarmSettings);
         },
         onError: (error) {
           print('Error in alarm stream: $error');
-          // Handle error appropriately
-        },
-        onDone: () {
-          print('Alarm stream completed');
-          // Handle stream completion if needed
         },
       );
 
@@ -326,7 +300,7 @@ class _CalendarState extends ConsumerState<Calendar> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         // Auto-dismiss timer
-        Timer(const Duration(minutes: 2), () {
+        Timer(const Duration(minutes: 15), () {
           if (context.mounted && !dialogCompleter.isCompleted) {
             Navigator.of(context).pop();
             dialogCompleter.complete();

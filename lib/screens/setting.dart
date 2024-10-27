@@ -296,13 +296,13 @@ class _SettingState extends ConsumerState<Setting> {
                               Wrap(
                                 spacing: 8,
                                 children: [
-                                  'Mon',
-                                  'Tue',
-                                  'Wed',
-                                  'Thu',
-                                  'Fri',
-                                  'Sat',
-                                  'Sun'
+                                  'Monday',
+                                  'Tuesday',
+                                  'Wednesday',
+                                  'Thursday',
+                                  'Friday',
+                                  'Saturday',
+                                  'Sunday'
                                 ].map((day) {
                                   final bool isSelected =
                                       selectedDays.contains(day);
@@ -509,21 +509,8 @@ class _SettingState extends ConsumerState<Setting> {
 
 // Helper to build day circles
   Widget _buildDayCircles(Routine routine, ColorScheme colorScheme) {
-    // Map of short day names to full names
-    final Map<String, String> dayMap = {
-      'Mon': 'Monday',
-      'Tue': 'Tuesday',
-      'Wed': 'Wednesday',
-      'Thu': 'Thursday',
-      'Fri': 'Friday',
-      'Sat': 'Saturday',
-      'Sun': 'Sunday'
-    };
-
-    // Convert short form days (if any) to full names for comparison
-    final List<String> routineDays =
-        routine.days.map((shortDay) => dayMap[shortDay] ?? shortDay).toList();
-
+    
+    final List<String> routineDays = routine.days;
     // List of full day names to render the UI in order
     const daysOfWeek = [
       'Sunday',
@@ -773,13 +760,6 @@ class _SettingState extends ConsumerState<Setting> {
       'Saturday': 6,
     };
     return dayOrder[day] ?? 0;
-  }
-
-// Helper function to sort and format selected days
-  String _getOrderedDayString(Set<String> selectedDays) {
-    final List<String> orderedDays = selectedDays.toList()
-      ..sort((a, b) => _getDayOrder(a).compareTo(_getDayOrder(b)));
-    return orderedDays.join(', ');
   }
 
 // Helper function to convert initials to full day names
