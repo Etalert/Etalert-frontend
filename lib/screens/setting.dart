@@ -1,3 +1,4 @@
+import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/services/data/routine/create_routine.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -150,13 +151,8 @@ class _SettingState extends ConsumerState<Setting> {
       appBar: AppBar(
         title: const Text('Settings',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            context.go('/${widget.googleId}');
-          },
-        ),
       ),
+      drawer: Sidebar(googleId: widget.googleId),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
