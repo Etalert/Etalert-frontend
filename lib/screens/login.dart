@@ -21,20 +21,18 @@ class _LoginState extends State<Login> {
           height: height,
           child: Form(
               child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Center(
                 child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Welcome to ETAlert!',
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                    fontSize: 36,
-                  ),
+                Image.asset(
+                  'assets/small_icon.png',
+                  width: 200,
+                  height: 200,
                 ),
                 const SizedBox(
-                  height: 35,
+                  height: 12,
                 ),
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 50),
@@ -44,13 +42,6 @@ class _LoginState extends State<Login> {
                       ),
                       onPressed: () {
                         SignInWithGoogle.loginWithGoogle(context);
-                        // .then((value) => {
-                        //       if (value)
-                        //         {
-                        //           Navigator.pushReplacementNamed(
-                        //               context, '/name')
-                        //         }
-                        //     });
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
