@@ -11,6 +11,7 @@ import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
+import 'package:frontend/services/data/routine/create_routine_log.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/services/websocket/web_socket_service.dart';
@@ -291,6 +292,68 @@ class _CalendarState extends ConsumerState<Calendar> {
     }
   }
 
+  Future<void> _handleRoutineLog(
+      AlarmSettings alarmSettings, String actualEndTime) async {
+    try {
+      // Find the corresponding event from _events
+      Map<String, dynamic>? eventDetails;
+      DateTime? eventDate;
+
+      // Search through _events to find matching event
+      for (var entry in _events.entries) {
+        final events = entry.value;
+        for (var event in events) {
+          if (AlarmManager.generateAlarmId(event['id']) == alarmSettings.id) {
+            eventDetails = event;
+            eventDate = entry.key;
+            break;
+          }
+        }
+        if (eventDetails != null) break;
+      }
+
+      if (eventDetails != null && eventDate != null) {
+        // Format the date string
+        final date = formatDate(eventDate);
+
+        // Get start time and end time from the event
+        final startTime = (eventDetails['time'] as TimeOfDay).format(context);
+        final endTime = (eventDetails['endTime'] as TimeOfDay).format(context);
+
+        // Calculate skewness (difference in minutes)
+        final actualTimeOfDay = TimeOfDay.now();
+        final scheduledEndTimeOfDay = eventDetails['endTime'] as TimeOfDay;
+
+        final actualMinutes =
+            actualTimeOfDay.hour * 60 + actualTimeOfDay.minute;
+        final scheduledMinutes =
+            scheduledEndTimeOfDay.hour * 60 + scheduledEndTimeOfDay.minute;
+        final skewness = actualMinutes - scheduledMinutes;
+
+        // Only create routine log if this is a routine event
+        if (eventDetails['routineId'] != "") {
+          await createRoutineLog(
+            eventDetails['routineId'],
+            widget.googleId,
+            date,
+            startTime,
+            endTime, // If no end time, use start time
+            actualEndTime,
+            skewness,
+          );
+          print('Routine log created successfully');
+        }
+      }
+    } catch (e) {
+      print('Error creating routine log: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to log routine completion')),
+        );
+      }
+    }
+  }
+
   void _showAlarmDialog(AlarmSettings alarmSettings) {
     if (!mounted) return;
 
@@ -323,7 +386,15 @@ class _CalendarState extends ConsumerState<Calendar> {
                   'Stop Alarm',
                   style: TextStyle(fontSize: 16),
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  // Get current time when alarm is stopped
+                  final now = TimeOfDay.now();
+                  final actualEndTime = now.format(context);
+                  // '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+                  // Handle routine logging
+                  await _handleRoutineLog(alarmSettings, actualEndTime);
+
                   Alarm.stop(alarmSettings.id);
                   AlarmManager.cancelAlarmTimer(alarmSettings.id);
                   if (!dialogCompleter.isCompleted) {
@@ -374,6 +445,7 @@ class _CalendarState extends ConsumerState<Calendar> {
         if (schedule.isHaveEndTime) {
           event = {
             'id': schedule.id,
+            'routineId': schedule.routineId,
             'name': schedule.name,
             'date': schedule.date,
             'time': TimeOfDay(
@@ -387,6 +459,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
+            'priority': schedule.priority,
             'recurrence': schedule.recurrence,
           };
         } else {
@@ -402,6 +475,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
+            'priority': schedule.priority,
             'recurrnce': schedule.recurrence,
           };
         }
