@@ -69,15 +69,15 @@ class _CalendarState extends ConsumerState<Calendar> {
     _setInitialLocation();
     _initializeAlarm();
 
-    // Initialize the router listener here
-    _routerListener = () {
-      if (mounted && context.mounted) {
-        final location = GoRouter.of(context).location;
-        if (location == '/${widget.googleId}') {
-          _reinitializeAlarm();
-        }
-      }
-    };
+    // // Initialize the router listener here
+    // _routerListener = () {
+    //   if (mounted && context.mounted) {
+    //     final location = GoRouter.of(context).location;
+    //     if (location == '/${widget.googleId}') {
+    //       _reinitializeAlarm();
+    //     }
+    //   }
+    // };
 
     webSocketService = WebSocketService(
       googleId: widget.googleId,
@@ -130,11 +130,11 @@ class _CalendarState extends ConsumerState<Calendar> {
 
   @override
   void dispose() {
-    // Clean up the listener
-    if (_isListenerAdded && _routerListener != null) {
-      _router.removeListener(_routerListener!);
-      _isListenerAdded = false;
-    }
+    // // Clean up the listener
+    // if (_isListenerAdded && _routerListener != null) {
+    //   _router.removeListener(_routerListener!);
+    //   _isListenerAdded = false;
+    // }
 
     webSocketService.closeWebSocket();
 
@@ -144,63 +144,54 @@ class _CalendarState extends ConsumerState<Calendar> {
     _isAlarmInitialized = false;
 
     // Dispose other controllers
-    mapController?.dispose();
-    originLocationController.dispose();
+    // mapController?.dispose();
+    // originLocationController.dispose();
 
     super.dispose();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Get router instance
-    _router = GoRouter.of(context);
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   // Get router instance
+  //   _router = GoRouter.of(context);
 
-    // Reinitialize alarm on app resume
-    if (!_isListenerAdded && _routerListener != null) {
-      _router.addListener(_routerListener!);
-      _isListenerAdded = true;
-      _reinitializeAlarm(); // Force reinitialization of alarms
-    }
-  }
+  //   // Reinitialize alarm on app resume
+  //   if (!_isListenerAdded && _routerListener != null) {
+  //     _router.addListener(_routerListener!);
+  //     _isListenerAdded = true;
+  //     _reinitializeAlarm(); // Force reinitialization of alarms
+  //   }
+  // }
 
   Future<void> _initializeAlarm() async {
-    // Return early if alarm is already initialized
     if (_isAlarmInitialized) return;
 
     try {
-      // Initialize the alarm
       await Alarm.init();
-
-      // Cancel any existing subscription
-      await _alarmSubscription?.cancel();
-
-      // Create a new subscription using the stream getter
       _alarmSubscription = Alarm.ringStream.stream.listen(
         (alarmSettings) {
-          print('Alarm triggered: ${alarmSettings.id}'); // Debug print
+          print('Alarm triggered: ${alarmSettings.id}');
           if (mounted) _showAlarmDialog(alarmSettings);
         },
         onError: (error) {
           print('Error in alarm stream: $error');
         },
       );
-
       _isAlarmInitialized = true;
       print('Alarm initialized successfully');
     } catch (e) {
       print('Error initializing alarm: $e');
       _isAlarmInitialized = false;
-      // Handle initialization error appropriately
     }
   }
 
-  void _reinitializeAlarm() {
-    _isAlarmInitialized = false;
-    _alarmSubscription?.cancel();
-    _alarmSubscription = null;
-    _initializeAlarm();
-  }
+  // void _reinitializeAlarm() {
+  //   _isAlarmInitialized = false;
+  //   _alarmSubscription?.cancel();
+  //   _alarmSubscription = null;
+  //   _initializeAlarm();
+  // }
 
   Future<void> _setInitialLocation() async {
     bool serviceEnabled;
@@ -357,57 +348,35 @@ class _CalendarState extends ConsumerState<Calendar> {
   void _showAlarmDialog(AlarmSettings alarmSettings) {
     if (!mounted) return;
 
-    final dialogCompleter = Completer<void>();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // Auto-dismiss timer
-        Timer(const Duration(minutes: 15), () {
-          if (context.mounted && !dialogCompleter.isCompleted) {
-            Navigator.of(context).pop();
-            dialogCompleter.complete();
-          }
-        });
+    final now = TimeOfDay.now();
+    final actualEndTime = now.format(context);
 
-        return AlertDialog(
-          title: Text(alarmSettings.notificationTitle ?? 'Alarm'),
-          content:
-              Text(alarmSettings.notificationBody ?? 'Time for your schedule!'),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: <Widget>[
-            Container(
-              width: double.infinity,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  alignment: Alignment.center,
-                ),
-                child: const Text(
-                  'Stop Alarm',
-                  style: TextStyle(fontSize: 16),
-                ),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(alarmSettings.notificationTitle ?? 'Alarm'),
+            content: Text(alarmSettings.notificationBody ?? 'Time for your schedule!'),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
                 onPressed: () async {
-                  // Get current time when alarm is stopped
-                  final now = TimeOfDay.now();
-                  final actualEndTime = now.format(context);
-                  // '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
-                  // Handle routine logging
                   await _handleRoutineLog(alarmSettings, actualEndTime);
-
-                  Alarm.stop(alarmSettings.id);
+                  await Alarm.stop(alarmSettings.id);
                   AlarmManager.cancelAlarmTimer(alarmSettings.id);
-                  if (!dialogCompleter.isCompleted) {
-                    Navigator.of(context).pop();
-                    dialogCompleter.complete();
-                  }
+                  Navigator.of(context).pop();
                 },
+                child: const Text('Stop Alarm', style: TextStyle(fontSize: 16)),
               ),
-            ),
-          ],
-        );
-      },
-    );
+            ],
+          );
+        },
+      );
+    });
   }
 
   String formatDate(DateTime date) {
