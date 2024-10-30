@@ -12,6 +12,7 @@ import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
 import 'package:frontend/services/data/routine/create_routine_log.dart';
+import 'package:frontend/services/data/schedules/get_schedule_by_group_id.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/services/websocket/web_socket_service.dart';
@@ -432,6 +433,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   void _processSchedules(List<Schedule> schedules) {
+    var groupId;
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
@@ -538,8 +540,6 @@ class _CalendarState extends ConsumerState<Calendar> {
         recurrence: recurrence,
         transportation: transportation,
       );
-
-      print(transportation);
 
       await ref
           .read(scheduleProvider(widget.googleId).notifier)
@@ -830,7 +830,6 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
-                                        print('calendar: ' + event['date']);
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref

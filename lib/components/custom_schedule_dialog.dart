@@ -396,7 +396,6 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                           onChanged: (EnumTransportation? newValue) {
                             setState(() {
                               selectedTransportation = newValue!;
-                              print(selectedTransportation.value);
                             });
                           },
                         ),
