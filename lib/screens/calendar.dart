@@ -462,6 +462,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'priority': schedule.priority,
             'recurrence': schedule.recurrence,
             'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         } else {
           event = {
@@ -479,6 +480,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'priority': schedule.priority,
             'recurrence': schedule.recurrence,
             'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         }
 
@@ -507,6 +509,7 @@ class _CalendarState extends ConsumerState<Calendar> {
     DateTime selectedDay,
     bool isHaveLocation,
     String recurrence,
+    String transportation,
   ) async {
     try {
       final bool isHaveLocation = oriName != null &&
@@ -533,7 +536,10 @@ class _CalendarState extends ConsumerState<Calendar> {
         isHaveLocation: isHaveLocation,
         isFirstSchedule: isFirstSchedule,
         recurrence: recurrence,
+        transportation: transportation,
       );
+
+      print(transportation);
 
       await ref
           .read(scheduleProvider(widget.googleId).notifier)
@@ -947,6 +953,7 @@ class _CalendarState extends ConsumerState<Calendar> {
           final desLocationName = eventDetails['destinationLocation'];
           final isHaveLocation = eventDetails['isHaveLocation'];
           final recurrence = eventDetails['recurrence'] ?? '';
+          final transportation = eventDetails['transportation'];
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
@@ -972,32 +979,8 @@ class _CalendarState extends ConsumerState<Calendar> {
             _selectedDay,
             isHaveLocation,
             recurrence,
+            transportation,
           );
-
-          // final notificationId =
-          //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await _notificationsHandler.showNotification(
-          //   AlarmSettings(
-          //     id: notificationId,
-          //     dateTime: scheduledDateTime,
-          //     notificationTitle: taskName,
-          //     notificationBody: "Your schedule is about to start!",
-          //     assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-          //     loopAudio: true,
-          //     enableNotificationOnKill: true,
-          //   ),
-          // );
-
-          // final alarmId = DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await AlarmManager.setAlarmWithAutoStop(
-          //   id: alarmId,
-          //   dateTime: scheduledDateTime,
-          //   title: taskName,
-          //   body: "Your schedule is about to start!",
-          //   flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-          // );
 
           setState(() {});
         },

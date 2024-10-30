@@ -19,6 +19,7 @@ Future<void> createSchedule(ScheduleReq schedule) async {
       'IsHaveLocation': schedule.isHaveLocation,
       'IsFirstSchedule': schedule.isFirstSchedule,
       'Recurrence': schedule.recurrence,
+      'Transportation': schedule.transportation,
     });
   } catch (e) {
     rethrow;

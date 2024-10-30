@@ -14,6 +14,15 @@ class EnumRecurrence {
   static const EnumRecurrence yearly = EnumRecurrence._('yearly');
 }
 
+class EnumTransportation {
+  final String value;
+  const EnumTransportation(this.value);
+
+  static const EnumTransportation driving = EnumTransportation('driving');
+  static const EnumTransportation walking = EnumTransportation('walking');
+  static const EnumTransportation transit = EnumTransportation('transit');
+}
+
 class ScheduleDialog extends StatefulWidget {
   final DateTime selectedDay;
   final Function(Map<String, dynamic>) onSave;
@@ -41,6 +50,7 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
   SelectedLocation originLocation = SelectedLocation();
   SelectedLocation destinationLocation = SelectedLocation();
   EnumRecurrence selectedRecurrence = EnumRecurrence.none;
+  EnumTransportation selectedTransportation = EnumTransportation.driving;
 
   @override
   void initState() {
@@ -335,6 +345,64 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Icon(Icons.directions_car,
+                          color: theme.colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<EnumTransportation>(
+                          value: selectedTransportation,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                              ),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            labelText: 'Transportation',
+                            labelStyle: TextStyle(
+                                color: Theme.of(context).colorScheme.primary),
+                          ),
+                          items: [
+                            EnumTransportation.driving,
+                            EnumTransportation.walking,
+                            EnumTransportation.transit,
+                          ].map((EnumTransportation transportation) {
+                            return DropdownMenuItem<EnumTransportation>(
+                              value: transportation,
+                              child: Text(transportation.value.capitalize()),
+                            );
+                          }).toList(),
+                          onChanged: (EnumTransportation? newValue) {
+                            setState(() {
+                              selectedTransportation = newValue!;
+                              print(selectedTransportation.value);
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             )
@@ -463,41 +531,41 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                 ],
               ),
               const SizedBox(height: 20),
-            Row(
-              children: [
-                Icon(Icons.repeat, color: colorScheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<EnumRecurrence>(
-                    value: selectedRecurrence,
-                    decoration: InputDecoration(
-                      border: customBorder,
-                      enabledBorder: customBorder,
-                      focusedBorder: customBorder,
-                      labelText: 'Recurrence',
-                      labelStyle: TextStyle(color: colorScheme.primary),
+              Row(
+                children: [
+                  Icon(Icons.repeat, color: colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<EnumRecurrence>(
+                      value: selectedRecurrence,
+                      decoration: InputDecoration(
+                        border: customBorder,
+                        enabledBorder: customBorder,
+                        focusedBorder: customBorder,
+                        labelText: 'Recurrence',
+                        labelStyle: TextStyle(color: colorScheme.primary),
+                      ),
+                      items: [
+                        EnumRecurrence.none,
+                        EnumRecurrence.daily,
+                        EnumRecurrence.weekly,
+                        EnumRecurrence.monthly,
+                        EnumRecurrence.yearly,
+                      ].map((EnumRecurrence recurrence) {
+                        return DropdownMenuItem<EnumRecurrence>(
+                          value: recurrence,
+                          child: Text(recurrence.value.capitalize()),
+                        );
+                      }).toList(),
+                      onChanged: (EnumRecurrence? newValue) {
+                        setState(() {
+                          selectedRecurrence = newValue!;
+                        });
+                      },
                     ),
-                    items: [
-                      EnumRecurrence.none,
-                      EnumRecurrence.daily,
-                      EnumRecurrence.weekly,
-                      EnumRecurrence.monthly,
-                      EnumRecurrence.yearly,
-                    ].map((EnumRecurrence recurrence) {
-                      return DropdownMenuItem<EnumRecurrence>(
-                        value: recurrence,
-                        child: Text(recurrence.value.capitalize()),
-                      );
-                    }).toList(),
-                    onChanged: (EnumRecurrence? newValue) {
-                      setState(() {
-                        selectedRecurrence = newValue!;
-                      });
-                    },
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
               const SizedBox(height: 20),
               _buildEndTimeSection(context, theme),
               _buildLocationSection(context, theme),
@@ -580,7 +648,8 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                             destinationLocation.selectedLatLng?.longitude,
                         'isHaveLocation': locationController.text.isNotEmpty &&
                             originLocationController.text.isNotEmpty,
-                        'recurrence' : selectedRecurrence.value,
+                        'recurrence': selectedRecurrence.value,
+                        'transportation': selectedTransportation.value,
                       };
 
                       widget.onSave(eventDetails);
