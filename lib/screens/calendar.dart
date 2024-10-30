@@ -12,6 +12,7 @@ import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
 import 'package:frontend/services/data/routine/create_routine_log.dart';
+import 'package:frontend/services/data/schedules/get_schedule_by_group_id.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/services/websocket/web_socket_service.dart';
@@ -565,6 +566,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   void _processSchedules(List<Schedule> schedules) {
+    var groupId;
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
@@ -595,6 +597,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'priority': schedule.priority,
             'recurrence': schedule.recurrence,
             'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         } else {
           event = {
@@ -612,6 +615,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'priority': schedule.priority,
             'recurrence': schedule.recurrence,
             'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         }
 
@@ -640,6 +644,7 @@ class _CalendarState extends ConsumerState<Calendar> {
     DateTime selectedDay,
     bool isHaveLocation,
     String recurrence,
+    String transportation,
   ) async {
     try {
       final bool isHaveLocation = oriName != null &&
@@ -666,6 +671,7 @@ class _CalendarState extends ConsumerState<Calendar> {
         isHaveLocation: isHaveLocation,
         isFirstSchedule: isFirstSchedule,
         recurrence: recurrence,
+        transportation: transportation,
       );
 
       await ref
@@ -983,7 +989,6 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
-                                        print('calendar: ' + event['date']);
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -1123,6 +1128,7 @@ class _CalendarState extends ConsumerState<Calendar> {
           final desLocationName = eventDetails['destinationLocation'];
           final isHaveLocation = eventDetails['isHaveLocation'];
           final recurrence = eventDetails['recurrence'] ?? '';
+          final transportation = eventDetails['transportation'];
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
@@ -1148,32 +1154,8 @@ class _CalendarState extends ConsumerState<Calendar> {
             _selectedDay,
             isHaveLocation,
             recurrence,
+            transportation,
           );
-
-          // final notificationId =
-          //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await _notificationsHandler.showNotification(
-          //   AlarmSettings(
-          //     id: notificationId,
-          //     dateTime: scheduledDateTime,
-          //     notificationTitle: taskName,
-          //     notificationBody: "Your schedule is about to start!",
-          //     assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-          //     loopAudio: true,
-          //     enableNotificationOnKill: true,
-          //   ),
-          // );
-
-          // final alarmId = DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await AlarmManager.setAlarmWithAutoStop(
-          //   id: alarmId,
-          //   dateTime: scheduledDateTime,
-          //   title: taskName,
-          //   body: "Your schedule is about to start!",
-          //   flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-          // );
 
           setState(() {});
         },

@@ -58,7 +58,13 @@ class Sidebar extends StatelessWidget {
                 routeToPage('/setting/$googleId');
               },
             ),
-            // Add more list tiles as needed
+            ListTile(
+              leading: const Icon(Icons.feedback_rounded),
+              title: const Text('Feedback'),
+              onTap: () {
+                routeToPage('/feedback/$googleId');
+              },
+            ),
           ],
         ),
       ),
