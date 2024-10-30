@@ -430,6 +430,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             'groupId': schedule.groupId,
             'priority': schedule.priority,
             'recurrence': schedule.recurrence,
+            'recurrenceId': schedule.recurrenceId,
           };
         } else {
           event = {
@@ -445,7 +446,8 @@ class _CalendarState extends ConsumerState<Calendar> {
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
             'priority': schedule.priority,
-            'recurrnce': schedule.recurrence,
+            'recurrence': schedule.recurrence,
+            'recurrenceId': schedule.recurrenceId,
           };
         }
 
@@ -734,10 +736,101 @@ class _CalendarState extends ConsumerState<Calendar> {
                   icon: const Icon(Icons.delete), // Trash bin icon
                   onPressed: () async {
                     // Delete the event
-                    Navigator.pop(context);
-                    await ref
-                        .read(scheduleProvider(widget.googleId).notifier)
-                        .deleteSchedule(event['groupId']);
+                    if (event['recurrence'] == "none" ||
+                        event['recurrence'] == "") {
+                      Navigator.pop(context);
+                      await ref
+                          .read(scheduleProvider(widget.googleId).notifier)
+                          .deleteThisSchedule(event['groupId']);
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            actionsAlignment: MainAxisAlignment.center,
+                            title: Container(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          color: Color.fromARGB(
+                                              255, 228, 228, 228),
+                                          width: 1))),
+                              child: const Center(
+                                  child: Text(
+                                'Delete recurring event',
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w600),
+                              )),
+                            ),
+                            actions: <Widget>[
+                              Center(
+                                child: Column(
+                                  children: [
+                                    TextButton(
+                                      child: Text(
+                                        'This event',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteThisSchedule(
+                                                event['groupId']);
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text(
+                                        'This and following events',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        print('calendar: ' + event['date']);
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteThisAndFollowingSchedulesByRecurrenceId(
+                                                event['recurrenceId'],
+                                                event['date']);
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text(
+                                        'All events',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteAllSchedulesByRecurrenceId(
+                                                event['recurrenceId']);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
                   },
                 ),
               ],
