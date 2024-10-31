@@ -885,43 +885,30 @@ class _CalendarState extends ConsumerState<Calendar> {
                 : Text('Recurrence: ${event['recurrence']}'),
             event['originLocation'] == '' || event['originLocation'] == null
                 ? SizedBox()
-                : TextField(
-                    controller: originLocationController,
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Start from?',
-                      labelStyle: TextStyle(fontSize: 14.0),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-                    ),
-                    maxLines: null,
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Start from?',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(event['originLocation']),
+                    ],
                   ),
             event['location'] == '' || event['location'] == null
                 ? SizedBox()
                 : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: locationController,
-                        style: TextStyle(
-                          fontSize: 14.0,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Where to?',
-                          labelStyle: TextStyle(fontSize: 14.0),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-                        ),
-                        maxLines: null,
+                      const Text(
+                        'Where to?',
+                        style: TextStyle(fontSize: 11),
                       ),
+                      const SizedBox(height: 8),
+                      Text(event['location']),
                     ],
                   ),
           ],
