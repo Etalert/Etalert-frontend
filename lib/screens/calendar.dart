@@ -50,6 +50,8 @@ class _CalendarState extends ConsumerState<Calendar> {
   final Map<DateTime, List<Map<String, dynamic>>> _events = {};
   TextEditingController originLocationController = TextEditingController();
   LatLng? _originLatLng;
+  BuildContext? _currentDialogContext;
+  int? _currentActiveAlarmId; // Track the currently ringing alarm
 
   GoogleMapController? mapController;
   LatLng _center = const LatLng(13.6512574, 100.4938679);
@@ -59,9 +61,10 @@ class _CalendarState extends ConsumerState<Calendar> {
   late final WebSocketService webSocketService;
   StreamSubscription? _alarmSubscription;
   bool _isAlarmInitialized = false;
-  late GoRouter _router;
-  bool _isListenerAdded = false;
-  late VoidCallback? _routerListener;
+  final Set<String> _processedScheduleIds = {};
+  final Set<String> _shownNotifications = {};
+  final Map<String, int> _scheduleAlarmIds =
+      {}; // Store alarm IDs by scheduleId
 
   @override
   void initState() {
@@ -70,15 +73,15 @@ class _CalendarState extends ConsumerState<Calendar> {
     _setInitialLocation();
     _initializeAlarm();
 
-    // Initialize the router listener here
-    _routerListener = () {
-      if (mounted && context.mounted) {
-        final location = GoRouter.of(context).location;
-        if (location == '/${widget.googleId}') {
-          _reinitializeAlarm();
-        }
-      }
-    };
+    // // Initialize the router listener here
+    // _routerListener = () {
+    //   if (mounted && context.mounted) {
+    //     final location = GoRouter.of(context).location;
+    //     if (location == '/${widget.googleId}') {
+    //       _reinitializeAlarm();
+    //     }
+    //   }
+    // };
 
     webSocketService = WebSocketService(
       googleId: widget.googleId,
@@ -131,11 +134,11 @@ class _CalendarState extends ConsumerState<Calendar> {
 
   @override
   void dispose() {
-    // Clean up the listener
-    if (_isListenerAdded && _routerListener != null) {
-      _router.removeListener(_routerListener!);
-      _isListenerAdded = false;
-    }
+    // // Clean up the listener
+    // if (_isListenerAdded && _routerListener != null) {
+    //   _router.removeListener(_routerListener!);
+    //   _isListenerAdded = false;
+    // }
 
     webSocketService.closeWebSocket();
 
@@ -143,65 +146,57 @@ class _CalendarState extends ConsumerState<Calendar> {
     _alarmSubscription?.cancel();
     _alarmSubscription = null;
     _isAlarmInitialized = false;
-
+    _processedScheduleIds.clear();
+    _shownNotifications.clear();
     // Dispose other controllers
-    mapController?.dispose();
-    originLocationController.dispose();
+    // mapController?.dispose();
+    // originLocationController.dispose();
 
     super.dispose();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Get router instance
-    _router = GoRouter.of(context);
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   // Get router instance
+  //   _router = GoRouter.of(context);
 
-    // Reinitialize alarm on app resume
-    if (!_isListenerAdded && _routerListener != null) {
-      _router.addListener(_routerListener!);
-      _isListenerAdded = true;
-      _reinitializeAlarm(); // Force reinitialization of alarms
-    }
-  }
+  //   // Reinitialize alarm on app resume
+  //   if (!_isListenerAdded && _routerListener != null) {
+  //     _router.addListener(_routerListener!);
+  //     _isListenerAdded = true;
+  //     _reinitializeAlarm(); // Force reinitialization of alarms
+  //   }
+  // }
 
   Future<void> _initializeAlarm() async {
-    // Return early if alarm is already initialized
     if (_isAlarmInitialized) return;
 
     try {
-      // Initialize the alarm
       await Alarm.init();
-
-      // Cancel any existing subscription
-      await _alarmSubscription?.cancel();
-
-      // Create a new subscription using the stream getter
       _alarmSubscription = Alarm.ringStream.stream.listen(
         (alarmSettings) {
-          print('Alarm triggered: ${alarmSettings.id}'); // Debug print
+          print('Alarm triggered: ${alarmSettings.id}');
           if (mounted) _showAlarmDialog(alarmSettings);
         },
         onError: (error) {
           print('Error in alarm stream: $error');
         },
       );
-
       _isAlarmInitialized = true;
       print('Alarm initialized successfully');
     } catch (e) {
       print('Error initializing alarm: $e');
       _isAlarmInitialized = false;
-      // Handle initialization error appropriately
     }
   }
 
-  void _reinitializeAlarm() {
-    _isAlarmInitialized = false;
-    _alarmSubscription?.cancel();
-    _alarmSubscription = null;
-    _initializeAlarm();
-  }
+  // void _reinitializeAlarm() {
+  //   _isAlarmInitialized = false;
+  //   _alarmSubscription?.cancel();
+  //   _alarmSubscription = null;
+  //   _initializeAlarm();
+  // }
 
   Future<void> _setInitialLocation() async {
     bool serviceEnabled;
@@ -271,78 +266,137 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   Future<void> setAlarm(
-      int id, DateTime dateTime, String title, String body) async {
-    try {
-      final alarmSettings = AlarmSettings(
-        id: id,
-        dateTime: dateTime,
-        assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-        notificationTitle: title,
-        notificationBody: body,
-        loopAudio: true,
-        vibrate: true,
-        fadeDuration: 3.0,
-        enableNotificationOnKill: true,
-      );
-
-      await Alarm.set(alarmSettings: alarmSettings);
-      print('Alarm set successfully for $dateTime with ID $id');
-    } catch (e) {
-      print('Error setting alarm: $e');
-      // Handle error appropriately
+      int scheduleId, DateTime dateTime, String title, String body) async {
+    if (_processedScheduleIds.contains(scheduleId.toString())) {
+      print('Alarm already set for schedule $scheduleId at $dateTime');
+      return;
     }
+
+    final alarmSettings = AlarmSettings(
+      id: scheduleId,
+      dateTime: dateTime,
+      notificationTitle: title,
+      notificationBody: body,
+      assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
+      loopAudio: true,
+      vibrate: true,
+      fadeDuration: 3.0,
+      enableNotificationOnKill: true,
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+    print('Alarm set for schedule ID $scheduleId at $dateTime');
+
+    _scheduleAlarmIds[scheduleId.toString()] = scheduleId;
+    _processedScheduleIds.add(scheduleId.toString());
   }
 
-  Future<void> _handleRoutineLog(
-      AlarmSettings alarmSettings, String actualEndTime) async {
+  Future<void> setAlarmWithCancel(int scheduleId, DateTime dateTime,
+      String title, String body, String uniqueId) async {
+    final uniqueKey = '${scheduleId}_${dateTime.toIso8601String()}';
+
+    final alarmId = scheduleId;
+
+    // Stop existing alarm
+    await AlarmManager.stopAlarm(alarmId);
+
+    // Ensure the alarm does not re-trigger after being stopped
+    if (!AlarmManager.activeAlarms.contains(alarmId)) {
+      print('[AlarmManager] Alarm canceled: $alarmId');
+      return;
+    }
+
+    final alarmSettings = AlarmSettings(
+      id: alarmId,
+      dateTime: dateTime,
+      notificationTitle: title,
+      notificationBody: body,
+      assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
+      loopAudio: true,
+      vibrate: true,
+      fadeDuration: 3.0,
+      enableNotificationOnKill: true,
+    );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+    print('Alarm reset successfully with ID: $alarmId at $dateTime');
+
+    // Add back to processed set
+    _processedScheduleIds.add(uniqueKey);
+  }
+
+  Future<void> _handleRoutineLog(AlarmSettings alarmSettings,
+      String actualEndTime, bool isEndTimeAlarm) async {
     try {
-      // Find the corresponding event from _events
-      Map<String, dynamic>? eventDetails;
+      final alarmTime = TimeOfDay(
+        hour: alarmSettings.dateTime.hour,
+        minute: alarmSettings.dateTime.minute,
+      );
+
+      // Find all matching events and their date
+      List<Map<String, dynamic>> matchingEvents = [];
       DateTime? eventDate;
 
-      // Search through _events to find matching event
       for (var entry in _events.entries) {
         final events = entry.value;
         for (var event in events) {
-          if (AlarmManager.generateAlarmId(event['id']) == alarmSettings.id) {
-            eventDetails = event;
-            eventDate = entry.key;
-            break;
+          final eventTime = event['time'] as TimeOfDay;
+          if (eventTime.hour == alarmTime.hour &&
+              eventTime.minute == alarmTime.minute) {
+            matchingEvents.add(event);
+            if (eventDate == null) {
+              eventDate = entry.key;
+            }
           }
         }
-        if (eventDetails != null) break;
       }
 
-      if (eventDetails != null && eventDate != null) {
-        // Format the date string
+      if (matchingEvents.isNotEmpty && eventDate != null) {
         final date = formatDate(eventDate);
 
-        // Get start time and end time from the event
-        final startTime = (eventDetails['time'] as TimeOfDay).format(context);
-        final endTime = (eventDetails['endTime'] as TimeOfDay).format(context);
+        for (var eventDetails in matchingEvents) {
+          final startTime = (eventDetails['time'] as TimeOfDay).format(context);
+          final endTime = eventDetails['isHaveEndTime']
+              ? (eventDetails['endTime'] as TimeOfDay).format(context)
+              : startTime;
 
-        // Calculate skewness (difference in minutes)
-        final actualTimeOfDay = TimeOfDay.now();
-        final scheduledEndTimeOfDay = eventDetails['endTime'] as TimeOfDay;
+          if (isEndTimeAlarm) {
+            // Log end-time specific details here
+            print("End time alarm for schedule: ${eventDetails['name']}");
+            // Your end-time specific logging logic, if any
+          } else {
+            // Log start-time specific details here
+            print("Start time alarm for schedule: ${eventDetails['name']}");
+            // Your start-time specific logging logic, if any
+          }
 
-        final actualMinutes =
-            actualTimeOfDay.hour * 60 + actualTimeOfDay.minute;
-        final scheduledMinutes =
-            scheduledEndTimeOfDay.hour * 60 + scheduledEndTimeOfDay.minute;
-        final skewness = actualMinutes - scheduledMinutes;
+          // Common routine log logic can go here if applicable
+          final actualTimeOfDay = TimeOfDay.now();
+          final scheduledEndTimeOfDay = eventDetails['isHaveEndTime']
+              ? eventDetails['endTime'] as TimeOfDay
+              : eventDetails['time'] as TimeOfDay;
 
-        // Only create routine log if this is a routine event
-        if (eventDetails['routineId'] != "") {
-          await createRoutineLog(
-            eventDetails['routineId'],
-            widget.googleId,
-            date,
-            startTime,
-            endTime, // If no end time, use start time
-            actualEndTime,
-            skewness,
-          );
-          print('Routine log created successfully');
+          final actualMinutes =
+              actualTimeOfDay.hour * 60 + actualTimeOfDay.minute;
+          final scheduledMinutes =
+              scheduledEndTimeOfDay.hour * 60 + scheduledEndTimeOfDay.minute;
+          final skewness = actualMinutes - scheduledMinutes;
+
+          // Create routine log only if it's a routine event
+          if (eventDetails['routineId'] != null &&
+              eventDetails['routineId'] != "") {
+            await createRoutineLog(
+              eventDetails['routineId'],
+              widget.googleId,
+              date,
+              startTime,
+              endTime,
+              actualEndTime,
+              skewness,
+            );
+            print(
+                'Routine log created successfully for ${eventDetails['name']}');
+          }
         }
       }
     } catch (e) {
@@ -355,60 +409,226 @@ class _CalendarState extends ConsumerState<Calendar> {
     }
   }
 
-  void _showAlarmDialog(AlarmSettings alarmSettings) {
-    if (!mounted) return;
+  Future<void> _showAlarmDialog(AlarmSettings alarmSettings) async {
+    final int scheduleId = alarmSettings.id;
+    final uniqueKey =
+        '${scheduleId}_${alarmSettings.dateTime.toIso8601String()}';
 
-    final dialogCompleter = Completer<void>();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // Auto-dismiss timer
-        Timer(const Duration(minutes: 15), () {
-          if (context.mounted && !dialogCompleter.isCompleted) {
-            Navigator.of(context).pop();
-            dialogCompleter.complete();
+    // Check if this alarm has already been shown
+    if (_shownNotifications.contains(uniqueKey)) {
+      print('Dialog already shown for schedule $scheduleId');
+      return;
+    }
+
+    // Determine if it's an end time alarm by checking if the notification title indicates "End"
+    final bool isEndTimeAlarm =
+        alarmSettings.notificationTitle?.contains("End") ?? false;
+
+    // Stop any currently active alarm
+    if (_currentActiveAlarmId != null) {
+      await _stopAlarm(_currentActiveAlarmId!);
+    }
+
+    // Dismiss any existing dialog
+    if (_currentDialogContext != null) {
+      _dismissCurrentDialog();
+    }
+
+    // Set the new active alarm ID
+    _currentActiveAlarmId = scheduleId;
+
+    // Find matching events, filtering for start or end time alarms
+    List<Map<String, dynamic>> matchingEvents = [];
+    DateTime? eventDate;
+
+    final alarmTime = TimeOfDay(
+      hour: alarmSettings.dateTime.hour,
+      minute: alarmSettings.dateTime.minute,
+    );
+
+    // Iterate through _events and find the correct start or end time event
+    for (var entry in _events.entries) {
+      final events = entry.value;
+      for (var event in events) {
+        final eventTime = isEndTimeAlarm
+            ? event['endTime'] as TimeOfDay
+            : event['time'] as TimeOfDay;
+        if (eventTime.hour == alarmTime.hour &&
+            eventTime.minute == alarmTime.minute) {
+          matchingEvents.add(event);
+          if (eventDate == null) {
+            eventDate = entry.key;
           }
-        });
+        }
+      }
+    }
 
-        return AlertDialog(
-          title: Text(alarmSettings.notificationTitle ?? 'Alarm'),
-          content:
-              Text(alarmSettings.notificationBody ?? 'Time for your schedule!'),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: <Widget>[
-            Container(
-              width: double.infinity,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  alignment: Alignment.center,
-                ),
-                child: const Text(
-                  'Stop Alarm',
-                  style: TextStyle(fontSize: 16),
-                ),
-                onPressed: () async {
-                  // Get current time when alarm is stopped
-                  final now = TimeOfDay.now();
-                  final actualEndTime = now.format(context);
-                  // '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    if (matchingEvents.isEmpty) return; // Exit if no matching events found
 
-                  // Handle routine logging
-                  await _handleRoutineLog(alarmSettings, actualEndTime);
+    // Show finish schedule dialog for end-time alarm, or stop alarm dialog for start-time alarm
+    if (isEndTimeAlarm) {
+      _showFinishScheduleDialog(alarmSettings, matchingEvents);
+    } else {
+      _showStartAlarmDialog(alarmSettings, matchingEvents);
+    }
+  }
 
-                  Alarm.stop(alarmSettings.id);
-                  AlarmManager.cancelAlarmTimer(alarmSettings.id);
-                  if (!dialogCompleter.isCompleted) {
-                    Navigator.of(context).pop();
-                    dialogCompleter.complete();
-                  }
-                },
+  void _showStartAlarmDialog(
+      AlarmSettings alarmSettings, List<Map<String, dynamic>> matchingEvents) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          _currentDialogContext = dialogContext; // Store dialog context
+
+          return AlertDialog(
+            title:
+                Text(alarmSettings.notificationTitle ?? 'Schedule Start Alert'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("The following schedules are starting:"),
+                  const SizedBox(height: 8),
+                  ...matchingEvents.map((event) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text('• ${event['name']}'),
+                      )),
+                ],
               ),
             ),
-          ],
-        );
-      },
-    );
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await Alarm.stop(alarmSettings.id);
+
+                  Navigator.of(dialogContext).pop(); // Close dialog
+                  _currentDialogContext = null; // Reset dialog context
+
+                  // Track shown notifications to avoid duplicates
+                  final uniqueKey =
+                      '${alarmSettings.id}_${alarmSettings.dateTime.toIso8601String()}';
+                  _shownNotifications.add(uniqueKey);
+
+                  // Allow future notifications after delay
+                  Future.delayed(const Duration(hours: 24), () {
+                    _shownNotifications.remove(uniqueKey);
+                    _processedScheduleIds.remove(uniqueKey);
+                  });
+                  _stopAlarmAndDismiss(alarmSettings);
+                },
+                child: const Text('Stop Alarm', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  Future<void> _showFinishScheduleDialog(AlarmSettings alarmSettings,
+      List<Map<String, dynamic>> matchingEvents) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          _currentDialogContext = dialogContext; // Store dialog context
+
+          return AlertDialog(
+            title: const Text('Schedule Ended'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("The following schedules have ended:"),
+                  const SizedBox(height: 8),
+                  ...matchingEvents.map((event) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text('• ${event['name']}'),
+                      )),
+                ],
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  final now = TimeOfDay.now();
+                  final actualEndTime = now.format(context);
+                  final bool isEndTimeAlarm =
+                      alarmSettings.notificationTitle?.contains("End") ?? false;
+                  // Log the end of the routine here
+                  await _handleRoutineLog(
+                      alarmSettings, actualEndTime, isEndTimeAlarm);
+
+                  // Close dialog and reset context
+                  Navigator.of(dialogContext).pop();
+                  _currentDialogContext = null;
+
+                  // Mark this notification as shown to avoid duplicates
+                  final uniqueKey =
+                      '${alarmSettings.id}_${alarmSettings.dateTime.toIso8601String()}';
+                  _shownNotifications.add(uniqueKey);
+
+                  // Allow future notifications after a delay
+                  Future.delayed(const Duration(hours: 24), () {
+                    _shownNotifications.remove(uniqueKey);
+                    _processedScheduleIds.remove(uniqueKey);
+                  });
+                  _stopAlarmAndDismiss(alarmSettings);
+                },
+                child: const Text('Finish Schedule',
+                    style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  Future<void> _stopAlarm(int alarmId) async {
+    try {
+      // Stop the alarm and cancel any associated timers
+      await Alarm.stop(alarmId);
+      //AlarmManager.cancelAlarmTimer(alarmId);
+      print('Alarm with ID $alarmId stopped.');
+    } catch (e) {
+      print('Error stopping alarm $alarmId: $e');
+    }
+  }
+
+  Future<void> _stopAlarmAndDismiss(AlarmSettings alarmSettings) async {
+    try {
+      // Stop the alarm sound
+      await Alarm.stop(alarmSettings.id);
+      //AlarmManager.cancelAlarmTimer(alarmSettings.id);
+
+      // Dismiss the dialog
+      if (_currentDialogContext != null) {
+        Navigator.of(_currentDialogContext!).pop();
+        _currentDialogContext = null;
+      }
+      print('Alarm stopped and dialog dismissed successfully.');
+    } catch (e) {
+      print('Error stopping alarm: $e');
+    }
+  }
+
+  void _dismissCurrentDialog() {
+    if (_currentDialogContext != null) {
+      Navigator.of(_currentDialogContext!).pop(); // Dismiss the dialog
+      _currentDialogContext = null; // Reset dialog context
+    }
   }
 
   String formatDate(DateTime date) {
@@ -433,7 +653,6 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   void _processSchedules(List<Schedule> schedules) {
-    var groupId;
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
@@ -732,6 +951,25 @@ class _CalendarState extends ConsumerState<Calendar> {
     );
   }
 
+  Future<void> _cancelAlarmAndNotification(int alarmId) async {
+    try {
+      // Stop the alarm and cancel the notification using the hashed alarm ID
+      await Alarm.stop(alarmId);
+      await flutterLocalNotificationsPlugin.cancel(alarmId);
+      print('Alarm and notification canceled for ID: $alarmId');
+    } catch (e) {
+      print('Error canceling alarm and notification: $e');
+    }
+  }
+
+  Future<void> _cancelNotification(int alarmId) async {
+    try {
+      await flutterLocalNotificationsPlugin.cancel(alarmId);
+    } catch (e) {
+      print('Error canceling alarm and notification: $e');
+    }
+  }
+
   void _showEventDetailsDialog(
       BuildContext context, Map<String, dynamic> event) {
     TextEditingController locationController = TextEditingController();
@@ -740,6 +978,17 @@ class _CalendarState extends ConsumerState<Calendar> {
     TextEditingController originLocationController = TextEditingController();
     originLocationController.text =
         event['originLocation'] ?? 'No Origin Location';
+
+    // Create the AlarmSettings object based on the event details
+    final alarmSettings = AlarmSettings(
+      id: int.tryParse(event['id'].toString()) ?? 0,
+      dateTime: DateTime.now(), // Replace with the actual schedule time
+      assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
+      notificationTitle: 'Schedule Completed',
+      notificationBody: '${event['name']} completed early.',
+      loopAudio: false,
+      vibrate: false,
+    );
 
     showDialog(
       context: context,
@@ -758,7 +1007,6 @@ class _CalendarState extends ConsumerState<Calendar> {
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () async {
-                    // Edit the event
                     Navigator.pop(context);
                     showDialog(
                       context: context,
@@ -770,8 +1018,42 @@ class _CalendarState extends ConsumerState<Calendar> {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete), // Trash bin icon
+                  icon: const Icon(Icons.delete),
                   onPressed: () async {
+                    final int groupId = event['groupId'];
+                    // Retrieve all schedule IDs associated with the group
+                    final List<String>? scheduleIds = await ref
+                        .read(scheduleProvider(widget.googleId).notifier)
+                        .getScheduleIdByGroupId(groupId);
+                    if (scheduleIds != null) {
+                      // Stop alarms and cancel notifications for each schedule ID
+                      for (String scheduleId in scheduleIds) {
+                        // Generate the hashed alarm ID to match the created alarm ID
+                        final int alarmIdByScheduleId =
+                            scheduleId.hashCode % 0x7FFFFFFF;
+                        final int alarmIdByRequest =
+                            AlarmManager.generateAlarmIdFromRequest(
+                          event['date'],
+                          event['time'].format(context),
+                          event['name'],
+                        );
+                        final int? alarmIdEnd = event['endtime'] != null
+                            ? AlarmManager.generateAlarmIdFromRequest(
+                                event['date'],
+                                event['endtime']!.format(context),
+                                '${event['name']}_end',
+                              )
+                            : null;
+                        await _cancelAlarmAndNotification(alarmIdByScheduleId);
+                        await _cancelAlarmAndNotification(alarmIdByRequest);
+                        if (alarmIdEnd != null) {
+                          await _cancelNotification(alarmIdEnd);
+                        } else {
+                          print(
+                              "Alarm ID for end time is null. Skipping cancellation.");
+                        }
+                      }
+                    }
                     // Delete the event
                     if (event['recurrence'] == "none" ||
                         event['recurrence'] == "") {
@@ -812,6 +1094,52 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        final List<String>? scheduleIds =
+                                            await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleIdByGroupId(
+                                                    groupId);
+                                        if (scheduleIds != null) {
+                                          // Stop alarms and cancel notifications for each schedule ID
+                                          for (String scheduleId
+                                              in scheduleIds) {
+                                            // Generate the hashed alarm ID to match the created alarm ID
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            final int? alarmIdEnd = event[
+                                                        'endtime'] !=
+                                                    null
+                                                ? AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                                    event['date'],
+                                                    event['endtime']!
+                                                        .format(context),
+                                                    '${event['name']}_end',
+                                                  )
+                                                : null;
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                            if (alarmIdEnd != null) {
+                                              await _cancelNotification(
+                                                  alarmIdEnd);
+                                            } else {
+                                              print(
+                                                  "Alarm ID for end time is null. Skipping cancellation.");
+                                            }
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -830,6 +1158,52 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        // Retrieve schedule IDs for this and following events
+                                        final List<String>?
+                                            followingScheduleIds = await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleByRecurrenceId(
+                                                    event['recurrenceId'],
+                                                    event['date']);
+                                        if (followingScheduleIds != null) {
+                                          for (String scheduleId
+                                              in followingScheduleIds) {
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            final int? alarmIdEnd = event[
+                                                        'endtime'] !=
+                                                    null
+                                                ? AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                                    event['date'],
+                                                    event['endtime']!
+                                                        .format(context),
+                                                    '${event['name']}_end',
+                                                  )
+                                                : null;
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                            if (alarmIdEnd != null) {
+                                              await _cancelNotification(
+                                                  alarmIdEnd);
+                                            } else {
+                                              print(
+                                                  "Alarm ID for end time is null. Skipping cancellation.");
+                                            }
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -849,6 +1223,51 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        // Retrieve schedule IDs for all events in the series
+                                        final List<String>? allScheduleIds =
+                                            await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleIdByGroupId(
+                                                    event['recurrenceId']);
+                                        if (allScheduleIds != null) {
+                                          for (String scheduleId
+                                              in allScheduleIds) {
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            final int? alarmIdEnd = event[
+                                                        'endtime'] !=
+                                                    null
+                                                ? AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                                    event['date'],
+                                                    event['endtime']!
+                                                        .format(context),
+                                                    '${event['name']}_end',
+                                                  )
+                                                : null;
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                            if (alarmIdEnd != null) {
+                                              await _cancelNotification(
+                                                  alarmIdEnd);
+                                            } else {
+                                              print(
+                                                  "Alarm ID for end time is null. Skipping cancellation.");
+                                            }
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -928,9 +1347,75 @@ class _CalendarState extends ConsumerState<Calendar> {
             },
             child: const Text('Save'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            // _finishSchedule(context, alarmSettings, event),
+            child: isLoading
+                ? const CircularProgressIndicator() // Show loading indicator
+                : const Text(
+                    'Finish Schedule'), // Show button text when not loading
+          ),
         ],
       ),
     );
+  }
+
+  void _finishSchedule(BuildContext dialogContext, AlarmSettings alarmSettings,
+      Map<String, dynamic> event) async {
+    if (isLoading) return; // Prevent duplicate calls
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final now = TimeOfDay.now();
+      final actualEndTime = now.format(context);
+
+      // Retrieve all related schedule IDs
+      final List<String>? scheduleIds = await ref
+          .read(scheduleProvider(widget.googleId).notifier)
+          .getScheduleIdByGroupId(event['groupId']);
+
+      if (scheduleIds != null) {
+        for (String scheduleId in scheduleIds) {
+          final int alarmIdByScheduleId = scheduleId.hashCode % 0x7FFFFFFF;
+          final int alarmIdByRequest = AlarmManager.generateAlarmIdFromRequest(
+            event['date'],
+            event['time'].format(context),
+            event['name'],
+          );
+          await _cancelAlarmAndNotification(alarmIdByScheduleId);
+          await _cancelAlarmAndNotification(alarmIdByRequest);
+        }
+      }
+
+      await Alarm.stop(alarmSettings.id);
+      await flutterLocalNotificationsPlugin.cancel(alarmSettings.id);
+      _processedScheduleIds.remove(event['id'].toString());
+
+      // Check if this completion is due to an end-time alarm
+      final bool isEndTimeAlarm =
+          alarmSettings.notificationTitle?.contains("End") ?? false;
+
+      await _handleRoutineLog(alarmSettings, actualEndTime, isEndTimeAlarm);
+
+      // Dismiss the dialog only if mounted
+      if (mounted && dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+      }
+    } catch (e) {
+      print("Error in Finish Schedule: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to finish schedule.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false; // Ensure loading state reset
+        });
+      }
+    }
   }
 
   Future<void> _addEventDialog(BuildContext context) async {

@@ -81,7 +81,7 @@ class NotificationsHandler {
     );
   }
 
-  Future<void> showNotification(AlarmSettings alarmSettings) async {
+  Future<void> showNotification(AlarmSettings alarmSettings, {required bool isEndTime}) async {
     final tz.TZDateTime scheduledDate =
         tz.TZDateTime.from(alarmSettings.dateTime, tz.local);
 
