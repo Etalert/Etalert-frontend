@@ -212,6 +212,27 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
           autoStop: autoStop,
         );
       }
+
+      // Set a notification only for the end time, without sound or vibration
+      if (schedule.isHaveEndTime && schedule.endTime != null) {
+        final endDateTime = DateFormat('dd-MM-yyyy HH:mm').parse(
+          '${schedule.date} ${schedule.endTime}',
+        );
+
+        if (endDateTime.isAfter(DateTime.now())) {
+          final alarmIdEnd = AlarmManager.generateAlarmIdFromRequest(
+            schedule.date,
+            schedule.startTime,
+            schedule.name,
+          );
+          await _setNotificationOnly(
+            id: alarmIdEnd,
+            dateTime: endDateTime,
+            title: "${schedule.name} - End",
+            body: "Your schedule '${schedule.name}' has ended.",
+          );
+        }
+      }
     } catch (e) {
       print('Error setting alarm: $e');
     }
@@ -219,29 +240,55 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
 
   Future<void> _setNotificationAndAlarmFromRequest(ScheduleReq scheduleReq,
       {bool autoStop = false}) async {
-    final date = DateFormat('dd-MM-yyyy').parse(scheduleReq.date);
-    final time = scheduleReq.startTime.split(':');
-    final scheduledDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      int.parse(time[0]),
-      int.parse(time[1]),
+    final startDate = DateFormat('dd-MM-yyyy').parse(scheduleReq.date);
+    final startTimeParts = scheduleReq.startTime.split(':');
+    final startDateTime = DateTime(
+      startDate.year,
+      startDate.month,
+      startDate.day,
+      int.parse(startTimeParts[0]),
+      int.parse(startTimeParts[1]),
     );
 
-    if (scheduledDateTime.isAfter(DateTime.now())) {
-      final alarmId = AlarmManager.generateAlarmIdFromRequest(
+    if (startDateTime.isAfter(DateTime.now())) {
+      final alarmIdStart = AlarmManager.generateAlarmIdFromRequest(
         scheduleReq.date,
         scheduleReq.startTime,
         scheduleReq.name,
       );
       await _setAlarm(
-        id: alarmId,
-        dateTime: scheduledDateTime,
+        id: alarmIdStart,
+        dateTime: startDateTime,
         title: scheduleReq.name,
         body: "Your schedule '${scheduleReq.name}' is starting now!",
         autoStop: autoStop,
       );
+    }
+
+    // Set notification only for end time if it exists
+    if (scheduleReq.isHaveEndTime && scheduleReq.endTime != null) {
+      final endTimeParts = scheduleReq.endTime!.split(':');
+      final endDateTime = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        int.parse(endTimeParts[0]),
+        int.parse(endTimeParts[1]),
+      );
+
+      if (endDateTime.isAfter(DateTime.now())) {
+        final alarmIdEnd = AlarmManager.generateAlarmIdFromRequest(
+          scheduleReq.date,
+          scheduleReq.endTime!,
+          scheduleReq.name + "_end",
+        );
+        await _setNotificationOnly(
+          id: alarmIdEnd,
+          dateTime: endDateTime,
+          title: "${scheduleReq.name} - End",
+          body: "Your schedule '${scheduleReq.name}' has ended.",
+        );
+      }
     }
   }
 
@@ -263,6 +310,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
         vibrate: true,
         enableNotificationOnKill: true,
       ),
+      isEndTime: false,
     );
 
     if (autoStop) {
@@ -281,6 +329,28 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
         body: body,
       );
     }
+  }
+
+  Future<void> _setNotificationOnly({
+    required int id,
+    required DateTime dateTime,
+    required String title,
+    required String body,
+  }) async {
+    await _notificationsHandler.showNotification(
+      AlarmSettings(
+        id: id,
+        dateTime: dateTime,
+        assetAudioPath: "null", // No sound for end notifications
+        notificationTitle: title,
+        notificationBody: body,
+        loopAudio: false, // Ensure it’s non-looping
+        vibrate: false, // No vibration
+        enableNotificationOnKill:
+            true, // Show notification even if app is killed
+      ),
+      isEndTime: true, // Mark this as an end-time notification
+    );
   }
 
   List<Schedule> getSchedulesForDate(DateTime date) {
@@ -349,12 +419,13 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     return null;
   }
 
-  Future<List<String>?> getScheduleByRecurrenceId(int recurrenceId, String date) async {
+  Future<List<String>?> getScheduleByRecurrenceId(
+      int recurrenceId, String date) async {
     state = const AsyncValue.loading();
     try {
       final schedulesId = await getScheduleByRecurrenceId(recurrenceId, date);
       return schedulesId;
-    } catch(e, stackTrace) {
+    } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
     return null;
