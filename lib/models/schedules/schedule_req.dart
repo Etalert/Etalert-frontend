@@ -14,6 +14,7 @@ class ScheduleReq {
   final bool isHaveLocation;
   final bool isFirstSchedule;
   final String recurrence;
+  final String transportation;
 
   ScheduleReq({
     required this.googleId,
@@ -31,16 +32,6 @@ class ScheduleReq {
     required this.isHaveLocation,
     required this.isFirstSchedule,
     required this.recurrence,
+    required this.transportation,
   });
-}
-
-class EnumRecurrence {
-  final String value;
-  const EnumRecurrence._(this.value);
-
-  static const EnumRecurrence none = EnumRecurrence._('none');
-  static const EnumRecurrence daily = EnumRecurrence._('daily');
-  static const EnumRecurrence weekly = EnumRecurrence._('weekly');
-  static const EnumRecurrence monthly = EnumRecurrence._('monthly');
-  static const EnumRecurrence yearly = EnumRecurrence._('yearly');
 }

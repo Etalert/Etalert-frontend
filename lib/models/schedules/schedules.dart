@@ -2,6 +2,7 @@ import 'dart:convert';
 
 class Schedule {
   final String id;
+  final String routineId;
   final String name;
   final String date;
   final String startTime;
@@ -15,10 +16,13 @@ class Schedule {
   final int priority;
   final bool isHaveLocation;
   final bool isFirstSchedule;
-  final String? recurrence;
+  final String recurrence;
+  final int recurrenceId;
+  final String transportation;
 
   Schedule({
     required this.id,
+    required this.routineId,
     required this.name,
     required this.date,
     required this.startTime,
@@ -32,7 +36,9 @@ class Schedule {
     required this.priority,
     required this.isHaveLocation,
     required this.isFirstSchedule,
-    this.recurrence,
+    required this.recurrence,
+    required this.recurrenceId,
+    required this.transportation,
   });
 
   static double _parseDouble(dynamic value) {
@@ -49,6 +55,7 @@ class Schedule {
   factory Schedule.fromJson(Map<String, dynamic> json) {
     return Schedule(
       id: json['Id'],
+      routineId: json['RoutineId'],
       name: json['Name'],
       date: json['Date'],
       startTime: json['StartTime'],
@@ -63,6 +70,8 @@ class Schedule {
       isHaveLocation: json['IsHaveLocation'],
       isFirstSchedule: json['IsFirstSchedule'],
       recurrence: json['Recurrence'],
+      recurrenceId: json['RecurrenceId'],
+      transportation: json['Transportation'],
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/services/data/schedules/delete_schedule.dart';
+import 'package:frontend/services/data/schedules/delete_schedule_by_recurrence_id.dart';
 import 'package:frontend/services/data/schedules/edit_schedule.dart';
+import 'package:frontend/services/data/schedules/get_schedule_by_group_id.dart';
 import 'package:frontend/services/data/schedules/get_user_schedules.dart';
 import 'package:frontend/services/data/schedules/create_schedule.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
@@ -303,7 +305,7 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     }
   }
 
-  Future<void> deleteSchedule(int groupId) async {
+  Future<void> deleteThisSchedule(int groupId) async {
     state = const AsyncValue.loading();
     try {
       await deleteSchedules(groupId);
@@ -313,6 +315,38 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
+  }
+
+  Future<void> deleteAllSchedulesByRecurrenceId(int recurrenceId) async {
+    state = const AsyncValue.loading();
+    try {
+      await deleteScheduleByRecurrenceId(recurrenceId, null);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  Future<void> deleteThisAndFollowingSchedulesByRecurrenceId(
+      int recurrenceId, String date) async {
+    state = const AsyncValue.loading();
+    try {
+      await deleteScheduleByRecurrenceId(recurrenceId, date);
+      await fetchAllSchedules();
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  Future<List<String>?> getScheduleIdByGroupId(int groupId) async {
+    state = const AsyncValue.loading();
+    try {
+      final schedulesId = await getScheduleByGroupId(groupId);
+      return schedulesId;
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+    return null;
   }
 }
 

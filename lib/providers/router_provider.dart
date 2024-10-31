@@ -4,6 +4,7 @@ import 'package:frontend/providers/tasklist_provider.dart';
 import 'package:frontend/screens/addroutine.dart';
 import 'package:frontend/screens/calendar.dart';
 import 'package:frontend/screens/editinfo.dart';
+import 'package:frontend/screens/feedback.dart';
 import 'package:frontend/screens/login.dart';
 import 'package:frontend/screens/bedtime.dart';
 import 'package:frontend/screens/name_setup.dart';
@@ -118,6 +119,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         }
         return WeeklyReports(
+          googleId: googleId,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/feedback/:googleId',
+      builder: (context, state) {
+        final googleId = state.params['googleId']!;
+        if (googleId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid googleId')),
+          );
+        }
+        return UserFeedBack(
           googleId: googleId,
         );
       },

@@ -11,6 +11,8 @@ import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
+import 'package:frontend/services/data/routine/create_routine_log.dart';
+import 'package:frontend/services/data/schedules/get_schedule_by_group_id.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/services/websocket/web_socket_service.dart';
@@ -291,6 +293,68 @@ class _CalendarState extends ConsumerState<Calendar> {
     }
   }
 
+  Future<void> _handleRoutineLog(
+      AlarmSettings alarmSettings, String actualEndTime) async {
+    try {
+      // Find the corresponding event from _events
+      Map<String, dynamic>? eventDetails;
+      DateTime? eventDate;
+
+      // Search through _events to find matching event
+      for (var entry in _events.entries) {
+        final events = entry.value;
+        for (var event in events) {
+          if (AlarmManager.generateAlarmId(event['id']) == alarmSettings.id) {
+            eventDetails = event;
+            eventDate = entry.key;
+            break;
+          }
+        }
+        if (eventDetails != null) break;
+      }
+
+      if (eventDetails != null && eventDate != null) {
+        // Format the date string
+        final date = formatDate(eventDate);
+
+        // Get start time and end time from the event
+        final startTime = (eventDetails['time'] as TimeOfDay).format(context);
+        final endTime = (eventDetails['endTime'] as TimeOfDay).format(context);
+
+        // Calculate skewness (difference in minutes)
+        final actualTimeOfDay = TimeOfDay.now();
+        final scheduledEndTimeOfDay = eventDetails['endTime'] as TimeOfDay;
+
+        final actualMinutes =
+            actualTimeOfDay.hour * 60 + actualTimeOfDay.minute;
+        final scheduledMinutes =
+            scheduledEndTimeOfDay.hour * 60 + scheduledEndTimeOfDay.minute;
+        final skewness = actualMinutes - scheduledMinutes;
+
+        // Only create routine log if this is a routine event
+        if (eventDetails['routineId'] != "") {
+          await createRoutineLog(
+            eventDetails['routineId'],
+            widget.googleId,
+            date,
+            startTime,
+            endTime, // If no end time, use start time
+            actualEndTime,
+            skewness,
+          );
+          print('Routine log created successfully');
+        }
+      }
+    } catch (e) {
+      print('Error creating routine log: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to log routine completion')),
+        );
+      }
+    }
+  }
+
   void _showAlarmDialog(AlarmSettings alarmSettings) {
     if (!mounted) return;
 
@@ -323,7 +387,15 @@ class _CalendarState extends ConsumerState<Calendar> {
                   'Stop Alarm',
                   style: TextStyle(fontSize: 16),
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  // Get current time when alarm is stopped
+                  final now = TimeOfDay.now();
+                  final actualEndTime = now.format(context);
+                  // '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+                  // Handle routine logging
+                  await _handleRoutineLog(alarmSettings, actualEndTime);
+
                   Alarm.stop(alarmSettings.id);
                   AlarmManager.cancelAlarmTimer(alarmSettings.id);
                   if (!dialogCompleter.isCompleted) {
@@ -361,6 +433,7 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   void _processSchedules(List<Schedule> schedules) {
+    var groupId;
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
@@ -374,6 +447,7 @@ class _CalendarState extends ConsumerState<Calendar> {
         if (schedule.isHaveEndTime) {
           event = {
             'id': schedule.id,
+            'routineId': schedule.routineId,
             'name': schedule.name,
             'date': schedule.date,
             'time': TimeOfDay(
@@ -387,7 +461,10 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
+            'priority': schedule.priority,
             'recurrence': schedule.recurrence,
+            'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         } else {
           event = {
@@ -402,7 +479,10 @@ class _CalendarState extends ConsumerState<Calendar> {
             'originLocation': schedule.originName,
             'isHaveEndTime': schedule.isHaveEndTime,
             'groupId': schedule.groupId,
-            'recurrnce': schedule.recurrence,
+            'priority': schedule.priority,
+            'recurrence': schedule.recurrence,
+            'recurrenceId': schedule.recurrenceId,
+            'transportation': schedule.transportation,
           };
         }
 
@@ -431,6 +511,7 @@ class _CalendarState extends ConsumerState<Calendar> {
     DateTime selectedDay,
     bool isHaveLocation,
     String recurrence,
+    String transportation,
   ) async {
     try {
       final bool isHaveLocation = oriName != null &&
@@ -457,6 +538,7 @@ class _CalendarState extends ConsumerState<Calendar> {
         isHaveLocation: isHaveLocation,
         isFirstSchedule: isFirstSchedule,
         recurrence: recurrence,
+        transportation: transportation,
       );
 
       await ref
@@ -691,10 +773,100 @@ class _CalendarState extends ConsumerState<Calendar> {
                   icon: const Icon(Icons.delete), // Trash bin icon
                   onPressed: () async {
                     // Delete the event
-                    Navigator.pop(context);
-                    await ref
-                        .read(scheduleProvider(widget.googleId).notifier)
-                        .deleteSchedule(event['groupId']);
+                    if (event['recurrence'] == "none" ||
+                        event['recurrence'] == "") {
+                      Navigator.pop(context);
+                      await ref
+                          .read(scheduleProvider(widget.googleId).notifier)
+                          .deleteThisSchedule(event['groupId']);
+                    } else {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            actionsAlignment: MainAxisAlignment.center,
+                            title: Container(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              decoration: const BoxDecoration(
+                                  border: Border(
+                                      bottom: BorderSide(
+                                          color: Color.fromARGB(
+                                              255, 228, 228, 228),
+                                          width: 1))),
+                              child: const Center(
+                                  child: Text(
+                                'Delete recurring event',
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.w600),
+                              )),
+                            ),
+                            actions: <Widget>[
+                              Center(
+                                child: Column(
+                                  children: [
+                                    TextButton(
+                                      child: Text(
+                                        'This event',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteThisSchedule(
+                                                event['groupId']);
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text(
+                                        'This and following events',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteThisAndFollowingSchedulesByRecurrenceId(
+                                                event['recurrenceId'],
+                                                event['date']);
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text(
+                                        'All events',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.red[700]),
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                        await ref
+                                            .read(scheduleProvider(
+                                                    widget.googleId)
+                                                .notifier)
+                                            .deleteAllSchedulesByRecurrenceId(
+                                                event['recurrenceId']);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    }
                   },
                 ),
               ],
@@ -708,40 +880,37 @@ class _CalendarState extends ConsumerState<Calendar> {
             Text('Date: ${event['date']}'),
             Text(
                 'Time: ${event['time'].format(context)} ${event['isHaveEndTime'] ? '- ' + event['endTime'].format(context) : ''}'),
-            Text('Recurrence: ${event['recurrence'] ?? 'None'}'),
-            TextField(
-              controller: originLocationController,
-              style: TextStyle(
-                fontSize: 14.0,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Start from?',
-                labelStyle: TextStyle(fontSize: 14.0),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-              ),
-              maxLines: null,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: locationController,
-              style: TextStyle(
-                fontSize: 14.0,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Where to?',
-                labelStyle: TextStyle(fontSize: 14.0),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-              ),
-              maxLines: null,
-            ),
+            event['recurrence'] == '' || event['recurrence'] == 'none'
+                ? SizedBox()
+                : Text('Recurrence: ${event['recurrence']}'),
+            event['originLocation'] == '' || event['originLocation'] == null
+                ? SizedBox()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Start from?',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(event['originLocation']),
+                    ],
+                  ),
+            event['location'] == '' || event['location'] == null
+                ? SizedBox()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Where to?',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(event['location']),
+                    ],
+                  ),
           ],
         ),
         actions: [
@@ -780,6 +949,7 @@ class _CalendarState extends ConsumerState<Calendar> {
           final desLocationName = eventDetails['destinationLocation'];
           final isHaveLocation = eventDetails['isHaveLocation'];
           final recurrence = eventDetails['recurrence'] ?? '';
+          final transportation = eventDetails['transportation'];
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
@@ -805,32 +975,8 @@ class _CalendarState extends ConsumerState<Calendar> {
             _selectedDay,
             isHaveLocation,
             recurrence,
+            transportation,
           );
-
-          // final notificationId =
-          //     DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await _notificationsHandler.showNotification(
-          //   AlarmSettings(
-          //     id: notificationId,
-          //     dateTime: scheduledDateTime,
-          //     notificationTitle: taskName,
-          //     notificationBody: "Your schedule is about to start!",
-          //     assetAudioPath: 'assets/mixkit-warning-alarm-buzzer-991.mp3',
-          //     loopAudio: true,
-          //     enableNotificationOnKill: true,
-          //   ),
-          // );
-
-          // final alarmId = DateTime.now().millisecondsSinceEpoch % 0x7FFFFFFF;
-
-          // await AlarmManager.setAlarmWithAutoStop(
-          //   id: alarmId,
-          //   dateTime: scheduledDateTime,
-          //   title: taskName,
-          //   body: "Your schedule is about to start!",
-          //   flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-          // );
 
           setState(() {});
         },

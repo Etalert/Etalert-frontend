@@ -27,7 +27,8 @@ class Preference extends ConsumerWidget {
           child: _buildBody(context, ref, tasks, theme),
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(context, googleId, tasks, colorScheme),
+      bottomNavigationBar:
+          _buildBottomBar(context, googleId, tasks, colorScheme),
     );
   }
 
@@ -61,7 +62,8 @@ class Preference extends ConsumerWidget {
   }
 
   // Build the main body section
-  Widget _buildBody(BuildContext context, WidgetRef ref, List tasks, ThemeData theme) {
+  Widget _buildBody(
+      BuildContext context, WidgetRef ref, List tasks, ThemeData theme) {
     return Column(
       children: [
         Row(
@@ -78,7 +80,8 @@ class Preference extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: () {
-                context.push('/addroutine/$googleId?returnPath=/preference/$googleId');
+                context.push(
+                    '/addroutine/$googleId?returnPath=/preference/$googleId');
               },
             ),
           ],
@@ -111,28 +114,58 @@ class Preference extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        task.name,
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16.0,
-                        ),
-                      ),
-                      const SizedBox(height: 4.0),
                       Row(
                         children: [
-                          Text(
-                            task.duration.toString(),
-                            style: TextStyle(color: Colors.grey[600]),
+                          Expanded(
+                            child: Text(
+                              task.name,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16.0,
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 5),
-                          Text(
-                            int.parse(task.duration) <= 1 ? 'min' : 'mins',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          const SizedBox(height: 4.0),
+                          Row(
+                            children: [
+                              Text(
+                                task.duration.toString(),
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                int.parse(task.duration) <= 1 ? 'min' : 'mins',
+                                style: TextStyle(
+                                    color: Colors.grey[600], fontSize: 14),
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4.0),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Repeated Day:',
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12),
+                          ),
+                          const SizedBox(height: 4.0),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  task.days.join(', '),
+                                  style: TextStyle(color: Colors.grey[600]),
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
                     ],
                   ),
                 ),
@@ -146,7 +179,8 @@ class Preference extends ConsumerWidget {
   }
 
   // Build the bottom bar with the 'Finish' button
-  Widget _buildBottomBar(BuildContext context, String googleId, List tasks, ColorScheme colorScheme) {
+  Widget _buildBottomBar(BuildContext context, String googleId, List tasks,
+      ColorScheme colorScheme) {
     return Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 35, left: 16, right: 16),
       child: ElevatedButton(
@@ -163,7 +197,8 @@ class Preference extends ConsumerWidget {
                 tasks[i].name,
                 duration,
                 i + 1,
-                [], // Send empty list for 'days' or customize as needed
+                tasks[i]
+                    .days, // Send empty list for 'days' or customize as needed
               );
             }
 
