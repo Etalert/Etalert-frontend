@@ -153,7 +153,7 @@ class _NameSetupState extends State<NameSetup> {
                       child: FilledButton(
                           onPressed: () {
                             updateName();
-                            context.push('/bedtime/${widget.googleId}');
+                            context.push('/preference/${widget.googleId}');
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor:

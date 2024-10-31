@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/providers/tasklist_provider.dart';
 import 'package:go_router/go_router.dart';
 
-class AddRoutine extends ConsumerWidget {
+class AddRoutine extends ConsumerStatefulWidget {
   final String googleId;
   final String returnPath;
 
@@ -15,10 +15,17 @@ class AddRoutine extends ConsumerWidget {
       : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final TextEditingController taskNameController = TextEditingController();
-    final TextEditingController durationController = TextEditingController();
+  ConsumerState<AddRoutine> createState() => _AddRoutineState();
+}
 
+class _AddRoutineState extends ConsumerState<AddRoutine> {
+  final TextEditingController taskNameController = TextEditingController();
+  final TextEditingController durationController = TextEditingController();
+  Set<String> selectedDays = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = ProviderScope.containerOf(context);
     final taskListNotifier = ref.read(taskListProvider.notifier);
 
     return Scaffold(
@@ -69,6 +76,44 @@ class AddRoutine extends ConsumerWidget {
                 labelText: 'Duration (minutes)',
               ),
             ),
+            const SizedBox(height: 20),
+            const Text('Repeated day:'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              children: [
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+                'Sunday'
+              ].map((day) {
+                final bool isSelected = selectedDays.contains(day);
+                return FilterChip(
+                  label: Text(day),
+                  selected: isSelected,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        selectedDays.add(day);
+                      } else {
+                        selectedDays.remove(day);
+                      }
+                    });
+                  },
+                  backgroundColor: Colors.grey[300], // Default color
+                  selectedColor: Theme.of(context)
+                      .colorScheme
+                      .primary, // Highlighted color
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              }).toList(),
+            ),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
@@ -85,9 +130,12 @@ class AddRoutine extends ConsumerWidget {
                         final taskName = taskNameController.text;
                         final duration = durationController.text;
                         if (taskName.isNotEmpty) {
-                          final task = Task(name: taskName, duration: duration);
+                          final task = Task(
+                              name: taskName,
+                              duration: duration,
+                              days: selectedDays.toList());
                           taskListNotifier.addTask(task);
-                          context.go(returnPath);
+                          Navigator.of(context).pop();
                         } else {
                           // Show error message
                         }
@@ -98,12 +146,6 @@ class AddRoutine extends ConsumerWidget {
                 ],
               ),
             ),
-            // IconButton(
-            //   onPressed: () {
-            //     context.go('/setting');
-            //   },
-            //   icon: const Icon(Icons.settings),
-            // ),
           ],
         ),
       ),
