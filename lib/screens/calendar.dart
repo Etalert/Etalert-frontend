@@ -880,40 +880,50 @@ class _CalendarState extends ConsumerState<Calendar> {
             Text('Date: ${event['date']}'),
             Text(
                 'Time: ${event['time'].format(context)} ${event['isHaveEndTime'] ? '- ' + event['endTime'].format(context) : ''}'),
-            Text('Recurrence: ${event['recurrence'] ?? 'None'}'),
-            TextField(
-              controller: originLocationController,
-              style: TextStyle(
-                fontSize: 14.0,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Start from?',
-                labelStyle: TextStyle(fontSize: 14.0),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-              ),
-              maxLines: null,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: locationController,
-              style: TextStyle(
-                fontSize: 14.0,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'Where to?',
-                labelStyle: TextStyle(fontSize: 14.0),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 8.0),
-              ),
-              maxLines: null,
-            ),
+            event['recurrence'] == '' || event['recurrence'] == 'none'
+                ? SizedBox()
+                : Text('Recurrence: ${event['recurrence']}'),
+            event['originLocation'] == '' || event['originLocation'] == null
+                ? SizedBox()
+                : TextField(
+                    controller: originLocationController,
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Start from?',
+                      labelStyle: TextStyle(fontSize: 14.0),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8.0),
+                    ),
+                    maxLines: null,
+                  ),
+            event['location'] == '' || event['location'] == null
+                ? SizedBox()
+                : Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: locationController,
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Where to?',
+                          labelStyle: TextStyle(fontSize: 14.0),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8.0),
+                        ),
+                        maxLines: null,
+                      ),
+                    ],
+                  ),
           ],
         ),
         actions: [
