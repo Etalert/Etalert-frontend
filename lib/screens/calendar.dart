@@ -566,7 +566,6 @@ class _CalendarState extends ConsumerState<Calendar> {
   }
 
   void _processSchedules(List<Schedule> schedules) {
-    var groupId;
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
@@ -865,12 +864,9 @@ class _CalendarState extends ConsumerState<Calendar> {
     );
   }
 
-  Future<void> _cancelAlarmAndNotification(String eventId) async {
+  Future<void> _cancelAlarmAndNotification(int alarmId) async {
     try {
-      // Parse the event ID to an integer
-      int alarmId = int.tryParse(eventId) ?? 0;
-
-      // Stop the alarm and cancel the notification
+      // Stop the alarm and cancel the notification using the hashed alarm ID
       await Alarm.stop(alarmId);
       await flutterLocalNotificationsPlugin.cancel(alarmId);
       print('Alarm and notification canceled for ID: $alarmId');
@@ -929,8 +925,27 @@ class _CalendarState extends ConsumerState<Calendar> {
                 IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: () async {
-                    final String eventId = event['id'].toString(); // Ensure it's a String
-                    await _cancelAlarmAndNotification(eventId);
+                    final int groupId = event['groupId'];
+                    // Retrieve all schedule IDs associated with the group
+                    final List<String>? scheduleIds = await ref
+                        .read(scheduleProvider(widget.googleId).notifier)
+                        .getScheduleIdByGroupId(groupId);
+                    if (scheduleIds != null) {
+                      // Stop alarms and cancel notifications for each schedule ID
+                      for (String scheduleId in scheduleIds) {
+                        // Generate the hashed alarm ID to match the created alarm ID
+                        final int alarmIdByScheduleId =
+                            scheduleId.hashCode % 0x7FFFFFFF;
+                        final int alarmIdByRequest =
+                            AlarmManager.generateAlarmIdFromRequest(
+                          event['date'],
+                          event['time'].format(context),
+                          event['name'],
+                        );
+                        await _cancelAlarmAndNotification(alarmIdByScheduleId);
+                        await _cancelAlarmAndNotification(alarmIdByRequest);
+                      }
+                    }
                     // Delete the event
                     if (event['recurrence'] == "none" ||
                         event['recurrence'] == "") {
@@ -971,6 +986,34 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        final List<String>? scheduleIds =
+                                            await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleIdByGroupId(
+                                                    groupId);
+                                        if (scheduleIds != null) {
+                                          // Stop alarms and cancel notifications for each schedule ID
+                                          for (String scheduleId
+                                              in scheduleIds) {
+                                            // Generate the hashed alarm ID to match the created alarm ID
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -989,6 +1032,34 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        // Retrieve schedule IDs for this and following events
+                                        final List<String>?
+                                            followingScheduleIds = await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleByRecurrenceId(
+                                                    event['recurrenceId'],
+                                                    event['date']);
+                                        if (followingScheduleIds != null) {
+                                          for (String scheduleId
+                                              in followingScheduleIds) {
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -1008,6 +1079,33 @@ class _CalendarState extends ConsumerState<Calendar> {
                                             color: Colors.red[700]),
                                       ),
                                       onPressed: () async {
+                                        // Retrieve schedule IDs for all events in the series
+                                        final List<String>? allScheduleIds =
+                                            await ref
+                                                .read(scheduleProvider(
+                                                        widget.googleId)
+                                                    .notifier)
+                                                .getScheduleIdByGroupId(
+                                                    event['recurrenceId']);
+                                        if (allScheduleIds != null) {
+                                          for (String scheduleId
+                                              in allScheduleIds) {
+                                            final int alarmIdByScheduleId =
+                                                scheduleId.hashCode %
+                                                    0x7FFFFFFF;
+                                            final int alarmIdByRequest =
+                                                AlarmManager
+                                                    .generateAlarmIdFromRequest(
+                                              event['date'],
+                                              event['time'].format(context),
+                                              event['name'],
+                                            );
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByScheduleId);
+                                            await _cancelAlarmAndNotification(
+                                                alarmIdByRequest);
+                                          }
+                                        }
                                         Navigator.pop(context);
                                         Navigator.pop(context);
                                         await ref
@@ -1091,25 +1189,72 @@ class _CalendarState extends ConsumerState<Calendar> {
             child: const Text('Save'),
           ),
           TextButton(
-            onPressed: () async {
-              final now = TimeOfDay.now();
-              final actualEndTime = now.format(context);
-
-              // Stop the alarm using the alarmSettings.id
-              await Alarm.stop(alarmSettings.id);
-              await flutterLocalNotificationsPlugin.cancel(alarmSettings.id);
-
-              _processedScheduleIds.remove(event['id'].toString());
-
-              // Handle routine log and close dialog
-              await _handleRoutineLog(alarmSettings, actualEndTime);
-              Navigator.pop(context);
-            },
-            child: const Text('Finish Schedule'),
+            onPressed: () => _finishSchedule(context, alarmSettings, event),
+            child: isLoading
+                ? const CircularProgressIndicator() // Show loading indicator
+                : const Text(
+                    'Finish Schedule'), // Show button text when not loading
           ),
         ],
       ),
     );
+  }
+
+  void _finishSchedule(BuildContext dialogContext, AlarmSettings alarmSettings,
+      Map<String, dynamic> event) async {
+    if (isLoading) return;
+
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final now = TimeOfDay.now();
+      final actualEndTime = now.format(context);
+
+      // Retrieve all related schedule IDs
+      final List<String>? scheduleIds = await ref
+          .read(scheduleProvider(widget.googleId).notifier)
+          .getScheduleIdByGroupId(event['groupId']);
+
+      if (scheduleIds != null) {
+        for (String scheduleId in scheduleIds) {
+          final int alarmIdByScheduleId = scheduleId.hashCode % 0x7FFFFFFF;
+          final int alarmIdByRequest = AlarmManager.generateAlarmIdFromRequest(
+            event['date'],
+            event['time'].format(context),
+            event['name'],
+          );
+          await _cancelAlarmAndNotification(alarmIdByScheduleId);
+          await _cancelAlarmAndNotification(alarmIdByRequest);
+        }
+      }
+
+      await Alarm.stop(alarmSettings.id);
+      await flutterLocalNotificationsPlugin.cancel(alarmSettings.id);
+      _processedScheduleIds.remove(event['id'].toString());
+
+      await _handleRoutineLog(alarmSettings, actualEndTime);
+
+      // Check if the context is still valid
+      if (mounted && dialogContext.mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        // Use a slight delay to ensure state is updated
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (dialogContext.mounted) {
+          Navigator.of(dialogContext).pop();
+        }
+      }
+    } catch (e) {
+      print("Error in Finish Schedule: $e");
+      setState(() {
+        isLoading = false; // Make sure to set loading to false even on error
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to finish schedule.')),
+      );
+    }
   }
 
   Future<void> _addEventDialog(BuildContext context) async {

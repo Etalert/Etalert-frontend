@@ -348,6 +348,17 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     }
     return null;
   }
+
+  Future<List<String>?> getScheduleByRecurrenceId(int recurrenceId, String date) async {
+    state = const AsyncValue.loading();
+    try {
+      final schedulesId = await getScheduleByRecurrenceId(recurrenceId, date);
+      return schedulesId;
+    } catch(e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+    }
+    return null;
+  }
 }
 
 final scheduleProvider = StateNotifierProvider.family<ScheduleNotifier,
