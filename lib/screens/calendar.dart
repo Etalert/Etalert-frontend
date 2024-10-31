@@ -1351,8 +1351,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             child: const Text('Save'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            // _finishSchedule(context, alarmSettings, event),
+            onPressed: () => _finishSchedule(context, alarmSettings, event),
             child: isLoading
                 ? const CircularProgressIndicator() // Show loading indicator
                 : const Text(
@@ -1374,23 +1373,29 @@ class _CalendarState extends ConsumerState<Calendar> {
     try {
       final now = TimeOfDay.now();
       final actualEndTime = now.format(context);
+      // Calculate the alarmId for the start time
+      final int alarmIdByRequest = AlarmManager.generateAlarmIdFromRequest(
+        event['date'],
+        event['time'].format(context),
+        event['name'],
+      );
 
-      // Retrieve all related schedule IDs
-      final List<String>? scheduleIds = await ref
-          .read(scheduleProvider(widget.googleId).notifier)
-          .getScheduleIdByGroupId(event['groupId']);
+      // Calculate the alarmId for the end time, if there is an end time
+      int? alarmIdEnd;
+      if (event['endtime'] != null) {
+        alarmIdEnd = AlarmManager.generateAlarmIdFromRequest(
+          event['date'],
+          event['endtime']!.format(context),
+          event['name'] + '_end',
+        );
+      }
 
-      if (scheduleIds != null) {
-        for (String scheduleId in scheduleIds) {
-          final int alarmIdByScheduleId = scheduleId.hashCode % 0x7FFFFFFF;
-          final int alarmIdByRequest = AlarmManager.generateAlarmIdFromRequest(
-            event['date'],
-            event['time'].format(context),
-            event['name'],
-          );
-          await _cancelAlarmAndNotification(alarmIdByScheduleId);
-          await _cancelAlarmAndNotification(alarmIdByRequest);
-        }
+      // Cancel the start time alarm and notification
+      await _cancelAlarmAndNotification(alarmIdByRequest);
+
+      // Cancel the end time alarm and notification if it exists
+      if (alarmIdEnd != null) {
+        await _cancelAlarmAndNotification(alarmIdEnd);
       }
 
       await Alarm.stop(alarmSettings.id);
