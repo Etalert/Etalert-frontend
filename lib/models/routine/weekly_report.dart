@@ -3,7 +3,7 @@ class WeeklyReport {
   final String name;
   final String startDate;
   final String endDate;
-  // final List<String> days;
+  final String tag;
   final List<ReportDetails> details;
 
   WeeklyReport({
@@ -11,7 +11,7 @@ class WeeklyReport {
     required this.name,
     required this.startDate,
     required this.endDate,
-    // required this.days,
+    required this.tag,
     required this.details,
   });
 
@@ -21,7 +21,7 @@ class WeeklyReport {
       name: json['Name'],
       startDate: json['StartDate'],
       endDate: json['EndDate'],
-      // days: List<String>.from(json['Days']),
+      tag: json['Tag'],
       details: (json['Details'] as List)
           .map((item) => ReportDetails.fromJson(item))
           .toList(),
