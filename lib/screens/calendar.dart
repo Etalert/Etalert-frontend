@@ -1209,26 +1209,37 @@ class _CalendarState extends ConsumerState<Calendar> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                event['location'] = locationController.text;
-                event['originLocation'] = originLocationController.text;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-          TextButton(
-            onPressed: () => _finishSchedule(context, alarmSettings, event),
-            child: isLoading
-                ? const CircularProgressIndicator() // Show loading indicator
-                : const Text(
-                    'Finish Schedule'), // Show button text when not loading
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 16),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      event['location'] = locationController.text;
+                      event['originLocation'] = originLocationController.text;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+                const SizedBox(width: 16),
+                TextButton(
+                  onPressed: () =>
+                      _finishSchedule(context, alarmSettings, event),
+                  child: isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text(
+                          'Finish'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
