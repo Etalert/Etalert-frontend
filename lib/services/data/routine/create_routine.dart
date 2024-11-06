@@ -2,7 +2,7 @@ import 'package:frontend/services/api.dart';
 import 'package:dio/dio.dart';
 
 Future<void> createRoutine(
-    String googleId, String name, int duration, int order, List<String> days) async {
+    String googleId, String name, int duration, int order) async {
   try {
     final response = await Api.dio.post(
       '/users/routines',
@@ -11,7 +11,6 @@ Future<void> createRoutine(
         "name": name,
         "duration": duration,
         "order": order,
-        "days": days, // Include the 'days' field
       },
     );
 

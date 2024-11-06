@@ -70,38 +70,38 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Text(
-                          'Repeated: ',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (widget.weeklyReport.days.length == 7)
-                          Text(
-                            'Everyday',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSecondary,
-                              fontSize: 13,
-                            ),
-                          )
-                        else
-                          ...widget.weeklyReport.days.map((e) {
-                            return Text(
-                              widget.weeklyReport.days.last == e
-                                  ? shortedDay(e)
-                                  : '${shortedDay(e)}, ',
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.onSecondary,
-                                fontSize: 13,
-                              ),
-                            );
-                          }).toList(),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     Text(
+                    //       'Repeated: ',
+                    //       style: TextStyle(
+                    //         color: Theme.of(context).colorScheme.onSecondary,
+                    //         fontSize: 13,
+                    //       ),
+                    //     ),
+                    // if (widget.weeklyReport.days.length == 7)
+                    //   Text(
+                    //     'Everyday',
+                    //     style: TextStyle(
+                    //       color: Theme.of(context).colorScheme.onSecondary,
+                    //       fontSize: 13,
+                    //     ),
+                    //   )
+                    // else
+                    //   ...widget.weeklyReport.days.map((e) {
+                    //     return Text(
+                    //       widget.weeklyReport.days.last == e
+                    //           ? shortedDay(e)
+                    //           : '${shortedDay(e)}, ',
+                    //       style: TextStyle(
+                    //         color:
+                    //             Theme.of(context).colorScheme.onSecondary,
+                    //         fontSize: 13,
+                    //       ),
+                    //     );
+                    //   }).toList(),
+                    // ],
+                    // ),
                   ],
                 )),
                 Column(

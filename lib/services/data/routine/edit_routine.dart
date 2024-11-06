@@ -6,7 +6,6 @@ Future<void> editRoutine(
   String name,
   int duration,
   int order,
-  List<String> days,
 ) async {
   try {
     if (routineId.isEmpty) {
@@ -20,7 +19,6 @@ Future<void> editRoutine(
       'name': name,
       'duration': duration,
       'order': order,
-      'days': days.isEmpty ? [] : days, // Handle empty days properly
     };
 
     print('Sending PATCH request with data: $data');
