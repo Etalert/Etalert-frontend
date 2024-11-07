@@ -9,13 +9,10 @@ import 'package:frontend/models/maps/location.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
-import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/schedule_provider.dart';
 import 'package:frontend/services/data/routine/create_routine_log.dart';
-import 'package:frontend/services/data/schedules/get_schedule_by_group_id.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
-import 'package:frontend/services/websocket/web_socket_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -27,8 +24,6 @@ import 'package:frontend/services/data/schedules/get_schedules.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
 import 'package:frontend/services/notification/alarm_manager.dart';
 import 'dart:async';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
 
 class Calendar extends ConsumerStatefulWidget {
   final String googleId;
@@ -56,7 +51,6 @@ class _CalendarState extends ConsumerState<Calendar> {
   Set<Marker> _marker = {};
   late SelectedLocation destinationLocation;
   final NotificationsHandler _notificationsHandler = NotificationsHandler();
-  late final WebSocketService webSocketService;
   StreamSubscription? _alarmSubscription;
   bool _isAlarmInitialized = false;
   late GoRouter _router;
@@ -79,54 +73,6 @@ class _CalendarState extends ConsumerState<Calendar> {
         }
       }
     };
-
-    webSocketService = WebSocketService(
-      googleId: widget.googleId,
-      onEventUpdate: (updatedEvent) {
-        ref
-            .watch(scheduleProvider(widget.googleId).notifier)
-            .fetchAllSchedules();
-      },
-      // onEventUpdate: (updatedEvent) {
-      //   setState(() {
-      //     // Find the date for this event
-      //     final date = DateFormat('dd-MM-yyyy')
-      //         .parse(updatedEvent['date'])
-      //         .add(const Duration(hours: 7));
-
-      //     // If we have events for this date
-      //     if (_events[date.toUtc()] != null) {
-      //       // Find and update the matching event
-      //       final eventIndex = _events[date.toUtc()]!
-      //           .indexWhere((event) => event['id'] == updatedEvent['id']);
-
-      //       if (eventIndex != -1) {
-      //         // Update existing event
-      //         _events[date.toUtc()]![eventIndex] = {
-      //           ..._events[date.toUtc()]![eventIndex],
-      //           ...updatedEvent,
-      //         };
-      //       } else {
-      //         // Add new event if not found
-      //         _events[date.toUtc()]!.add(updatedEvent);
-      //       }
-
-      //       // Resort events for this date
-      //       _events[date.toUtc()]!.sort((a, b) {
-      //         TimeOfDay timeA = a['time'];
-      //         TimeOfDay timeB = b['time'];
-      //         return timeA.hour.compareTo(timeB.hour) == 0
-      //             ? timeA.minute.compareTo(timeB.minute)
-      //             : timeA.hour.compareTo(timeB.hour);
-      //       });
-      //     } else {
-      //       // Create new entry for this date
-      //       _events[date.toUtc()] = [updatedEvent];
-      //     }
-      //   });
-      // },
-    );
-    webSocketService.connectWebSocket();
   }
 
   @override
@@ -136,8 +82,6 @@ class _CalendarState extends ConsumerState<Calendar> {
       _router.removeListener(_routerListener!);
       _isListenerAdded = false;
     }
-
-    webSocketService.closeWebSocket();
 
     // Cancel alarm subscription
     _alarmSubscription?.cancel();
