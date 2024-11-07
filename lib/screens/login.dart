@@ -40,7 +40,7 @@ class _LoginState extends State<Login> {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Theme.of(context).primaryColor),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         SignInWithGoogle.loginWithGoogle(context);
                       },
                       child: Row(

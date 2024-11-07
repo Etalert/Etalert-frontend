@@ -10,6 +10,7 @@ import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/providers/schedule_provider.dart';
+import 'package:frontend/providers/web_socket_provider.dart';
 import 'package:frontend/services/data/routine/create_routine_log.dart';
 import 'package:frontend/services/notification/notification_handler.dart';
 import 'package:frontend/screens/selectlocation.dart';
@@ -378,6 +379,7 @@ class _CalendarState extends ConsumerState<Calendar> {
 
   void _processSchedules(List<Schedule> schedules) {
     var groupId;
+
     setState(() {
       _events.clear(); // Clear existing events before processing
       for (var schedule in schedules) {
