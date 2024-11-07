@@ -2,7 +2,7 @@ class Routine {
   final String id;
   final String name;
   final int duration;
-  final int order;
+  int order;
 
   Routine({
     required this.id,

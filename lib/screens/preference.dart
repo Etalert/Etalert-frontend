@@ -197,8 +197,6 @@ class Preference extends ConsumerWidget {
                 tasks[i].name,
                 duration,
                 i + 1,
-                tasks[i]
-                    .days, // Send empty list for 'days' or customize as needed
               );
             }
 
