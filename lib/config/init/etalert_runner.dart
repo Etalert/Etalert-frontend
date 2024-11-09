@@ -10,6 +10,7 @@ import 'package:frontend/config/theme/color_schemes.g.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/router_provider.dart';
 import 'package:frontend/providers/web_socket_provider.dart';
+import '../../providers/schedule_provider.dart';
 import '../theme/custom_color.g.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -23,7 +24,14 @@ class ETAlert extends ConsumerStatefulWidget {
 
 class _ETAlertState extends ConsumerState<ETAlert> {
   void connectWebSocket() async {
-    final uri = Uri.parse(dotenv.env['WEBSOCKET_URL']!);
+    final websocketUrl = dotenv.env['WEBSOCKET_URL'];
+
+    if (websocketUrl == null) {
+      print('Error: WEBSOCKET_URL is not set in the environment variables.');
+      return;
+    }
+
+    final uri = Uri.parse(websocketUrl);
     final websocketChannel = WebSocketChannel.connect(uri);
     WebSocketChannelState.channel = websocketChannel;
 
@@ -60,6 +68,16 @@ class _ETAlertState extends ConsumerState<ETAlert> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<WebSocketState>(webSocketStateProvider, (previous, next) {
+      final data = next.data;
+
+      // Check if data contains schedule information to update
+      if (data.containsKey('scheduleUpdate') && AuthState.googleId != null) {
+        ref
+            .read(scheduleProvider(AuthState.googleId!).notifier)
+            .updateScheduleFromData(data['scheduleUpdate']);
+      }
+    });
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         ColorScheme lightScheme;
@@ -79,6 +97,7 @@ class _ETAlertState extends ConsumerState<ETAlert> {
         }
 
         final router = ref.watch(routerProvider);
+
         return MaterialApp.router(
           title: 'ETAlert',
           debugShowCheckedModeBanner: false,

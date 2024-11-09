@@ -353,6 +353,32 @@ class ScheduleNotifier extends StateNotifier<AsyncValue<ScheduleState>> {
     );
   }
 
+  void updateScheduleFromData(Map<String, dynamic> data) {
+    final updatedSchedule =
+        Schedule.fromJson(data); // Convert to Schedule object
+
+    // Step 1: Cancel existing alarm for the schedule
+    final alarmId = AlarmManager.generateAlarmId(updatedSchedule.id);
+    AlarmManager.deleteAlarm(alarmId.toString()); // Remove old alarm
+
+    // Step 2: Update state with the new schedule
+    state.whenData((currentState) {
+      final updatedSchedules = currentState.schedules.map((schedule) {
+        return schedule.id == updatedSchedule.id ? updatedSchedule : schedule;
+      }).toList();
+
+      final updatedSchedulesMap = _organizeSchedulesByDate(updatedSchedules);
+
+      state = AsyncValue.data(currentState.copyWith(
+        schedules: updatedSchedules,
+        schedulesMap: updatedSchedulesMap,
+      ));
+
+      // Step 3: Set a new notification or alarm for the updated schedule
+      _setNotificationAndAlarm(updatedSchedule, autoStop: false);
+    });
+  }
+
   List<Schedule> getSchedulesForDate(DateTime date) {
     return state.when(
       data: (state) {

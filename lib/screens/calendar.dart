@@ -67,26 +67,10 @@ class _CalendarState extends ConsumerState<Calendar> {
     _notificationsHandler.initialize();
     _setInitialLocation();
     _initializeAlarm();
-
-    // Initialize the router listener here
-    _routerListener = () {
-      if (mounted && context.mounted) {
-        final location = GoRouter.of(context).location;
-        if (location == '/${widget.googleId}') {
-          _reinitializeAlarm();
-        }
-      }
-    };
   }
 
   @override
   void dispose() {
-    // Clean up the listener
-    if (_isListenerAdded && _routerListener != null) {
-      _router.removeListener(_routerListener!);
-      _isListenerAdded = false;
-    }
-
     // Cancel alarm subscription
     _alarmSubscription?.cancel();
     _alarmSubscription = null;
