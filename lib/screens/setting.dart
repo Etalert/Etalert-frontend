@@ -350,33 +350,45 @@ class _SettingState extends ConsumerState<Setting> {
                           ),
                         );
                       },
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              width: 0.5,
-                              color: Color.fromARGB(255, 205, 205, 205),
-                            ),
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 28),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                routineTag.name,
-                                style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSecondary,
-                                    fontWeight: FontWeight.w500),
+                      child: Dismissible(
+                        key: Key(routineTag.id),
+                        onDismissed: (direction) {
+                          // Remove the item from the data source.
+                          if (direction == DismissDirection.endToStart) {
+                            setState(() {
+                              routineTags.removeAt(index);
+                            });
+                          }
+                        },
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                width: 0.5,
+                                color: Color.fromARGB(255, 205, 205, 205),
                               ),
                             ),
-                            Icon(Icons.chevron_right_rounded,
-                                color:
-                                    Theme.of(context).colorScheme.onSecondary),
-                          ],
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 28),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  routineTag.name,
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondary,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                              Icon(Icons.chevron_right_rounded,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondary),
+                            ],
+                          ),
                         ),
                       ),
                     );

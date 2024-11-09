@@ -657,29 +657,215 @@ class _RoutineListState extends State<RoutineList> {
                                 )
                               : Column(
                                   children: routines.map((e) {
-                                    return Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: ListTile(
-                                          title: Padding(
-                                            padding: const EdgeInsets.only(
-                                                bottom: 8),
-                                            child: Text(
-                                              e.name,
-                                              style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                                fontWeight: FontWeight.w700,
+                                    return GestureDetector(
+                                      onLongPress: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            final TextEditingController
+                                                nameController =
+                                                TextEditingController();
+                                            final TextEditingController
+                                                durationController =
+                                                TextEditingController();
+
+                                            nameController.text = e.name;
+                                            durationController.text =
+                                                e.duration.toString();
+
+                                            return AlertDialog(
+                                              title: Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 10),
+                                                child: Text('Edit Routine',
+                                                    style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .primary)),
+                                              ),
+                                              content: SingleChildScrollView(
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    TextField(
+                                                      controller:
+                                                          nameController,
+                                                      decoration:
+                                                          InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .primaryContainer),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8.0),
+                                                        ),
+                                                        enabledBorder:
+                                                            OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .primaryContainer),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8.0),
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                            borderSide: BorderSide(
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .primaryContainer),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8.0)),
+                                                        labelText: 'Name',
+                                                        labelStyle: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .primary,
+                                                            fontSize: 14),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 20),
+                                                    TextField(
+                                                      controller:
+                                                          durationController,
+                                                      decoration:
+                                                          InputDecoration(
+                                                        border:
+                                                            OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .primaryContainer),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8.0),
+                                                        ),
+                                                        enabledBorder:
+                                                            OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .primaryContainer),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      8.0),
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                            borderSide: BorderSide(
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .primaryContainer),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8.0)),
+                                                        labelText:
+                                                            'Duration (mins)',
+                                                        labelStyle: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .primary,
+                                                            fontSize: 14),
+                                                      ),
+                                                      keyboardType:
+                                                          TextInputType.number,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: Text(
+                                                    'Cancel',
+                                                    style: TextStyle(
+                                                        color:
+                                                            Colors.grey[600]),
+                                                  ),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    final String name =
+                                                        nameController.text;
+                                                    final int duration =
+                                                        int.parse(
+                                                            durationController
+                                                                .text);
+
+                                                    setState(() {
+                                                      isLoading = true;
+                                                    });
+                                                    Navigator.of(context).pop();
+
+                                                    await editRoutine(
+                                                        e.id,
+                                                        name,
+                                                        duration,
+                                                        e.order);
+
+                                                    final data =
+                                                        await getRoutines(
+                                                            widget.tagId);
+
+                                                    setState(() {
+                                                      routines = data;
+                                                      isLoading = false;
+                                                    });
+                                                  },
+                                                  child: const Text('Save'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: ListTile(
+                                            title: Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 8),
+                                              child: Text(
+                                                e.name,
+                                                style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          subtitle: Text(
-                                            '${e.duration}${e.duration <= 1 ? ' min' : ' mins'}',
-                                            style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSecondary),
+                                            subtitle: Text(
+                                              '${e.duration}${e.duration <= 1 ? ' min' : ' mins'}',
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSecondary),
+                                            ),
                                           ),
                                         ),
                                       ),
