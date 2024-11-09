@@ -2,6 +2,7 @@ import 'package:frontend/components/routine_list.dart';
 import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/models/routine/routine_tag.dart';
 import 'package:frontend/services/data/routine/create_routine_tag.dart';
+import 'package:frontend/services/data/routine/delete_routine_tag.dart';
 import 'package:frontend/services/data/routine/get_routine_tags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -350,45 +351,82 @@ class _SettingState extends ConsumerState<Setting> {
                           ),
                         );
                       },
-                      child: Dismissible(
-                        key: Key(routineTag.id),
-                        onDismissed: (direction) {
-                          // Remove the item from the data source.
-                          if (direction == DismissDirection.endToStart) {
-                            setState(() {
-                              routineTags.removeAt(index);
-                            });
-                          }
-                        },
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                width: 0.5,
-                                color: Color.fromARGB(255, 205, 205, 205),
+                      onLongPress: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(
+                                'Delete routine tag',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w600),
                               ),
+                              content: Text(
+                                  'Are you sure you want to delete "${routineTag.name}"?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.of(context).pop();
+
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+
+                                    await deleteRoutineTag(routineTag.id);
+
+                                    _loadRoutineTags();
+
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                  },
+                                  child: Text('Delete',
+                                      style: TextStyle(color: Colors.red[600])),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 0.5,
+                              color: Color.fromARGB(255, 205, 205, 205),
                             ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 28),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  routineTag.name,
-                                  style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSecondary,
-                                      fontWeight: FontWeight.w500),
-                                ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 28),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                routineTag.name,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSecondary,
+                                    fontWeight: FontWeight.w500),
                               ),
-                              Icon(Icons.chevron_right_rounded,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSecondary),
-                            ],
-                          ),
+                            ),
+                            Icon(Icons.chevron_right_rounded,
+                                color:
+                                    Theme.of(context).colorScheme.onSecondary),
+                          ],
                         ),
                       ),
                     );
