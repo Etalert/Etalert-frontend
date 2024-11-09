@@ -3,6 +3,7 @@ import 'dart:core';
 import 'package:flutter/material.dart';
 import 'package:frontend/models/routine/routine_model.dart';
 import 'package:frontend/services/data/routine/create_routine.dart';
+import 'package:frontend/services/data/routine/delete_routine.dart';
 import 'package:frontend/services/data/routine/edit_routine.dart';
 import 'package:frontend/services/data/routine/get_routine.dart';
 import 'package:frontend/services/data/routine/get_routine_by_tag_id.dart';
@@ -658,7 +659,7 @@ class _RoutineListState extends State<RoutineList> {
                               : Column(
                                   children: routines.map((e) {
                                     return GestureDetector(
-                                      onLongPress: () {
+                                      onTap: () {
                                         showDialog(
                                           context: context,
                                           builder: (BuildContext context) {
@@ -677,14 +678,16 @@ class _RoutineListState extends State<RoutineList> {
                                               title: Padding(
                                                 padding: const EdgeInsets.only(
                                                     bottom: 10),
-                                                child: Text('Edit Routine',
-                                                    style: TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primary)),
+                                                child: Text(
+                                                  'Edit Routine',
+                                                  style: TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .primary),
+                                                ),
                                               ),
                                               content: SingleChildScrollView(
                                                 child: Column(
@@ -836,6 +839,63 @@ class _RoutineListState extends State<RoutineList> {
                                                     });
                                                   },
                                                   child: const Text('Save'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      onLongPress: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text(
+                                                'Delete Routine',
+                                                style: TextStyle(
+                                                    fontSize: 18,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .primary,
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                              ),
+                                              content: const Text(
+                                                  'Are you sure you want to delete this routine?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: const Text(
+                                                    'Cancel',
+                                                    style: TextStyle(
+                                                        color: Colors.grey),
+                                                  ),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    setState(() {
+                                                      isLoading = true;
+                                                    });
+                                                    Navigator.of(context).pop();
+
+                                                    await deleteRoutine(e.id);
+
+                                                    final data =
+                                                        await getRoutines(
+                                                            widget.tagId);
+
+                                                    setState(() {
+                                                      routines = data;
+                                                      isLoading = false;
+                                                    });
+                                                  },
+                                                  child: Text(
+                                                    'Delete',
+                                                    style: TextStyle(
+                                                        color: Colors.red[600]),
+                                                  ),
                                                 ),
                                               ],
                                             );
