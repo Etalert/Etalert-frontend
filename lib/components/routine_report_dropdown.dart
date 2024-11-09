@@ -73,33 +73,22 @@ class _RoutineReportDropdownState extends State<RoutineReportDropdown> {
                     Row(
                       children: [
                         Text(
-                          'Repeated: ',
+                          'Tag: ',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSecondary,
                             fontSize: 13,
                           ),
                         ),
-                        if (widget.weeklyReport.days.length == 7)
-                          Text(
-                            'Everyday',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSecondary,
-                              fontSize: 13,
-                            ),
-                          )
-                        else
-                          ...widget.weeklyReport.days.map((e) {
-                            return Text(
-                              widget.weeklyReport.days.last == e
-                                  ? shortedDay(e)
-                                  : '${shortedDay(e)}, ',
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.onSecondary,
-                                fontSize: 13,
-                              ),
-                            );
-                          }).toList(),
+                        Text(
+                          widget.weeklyReport.tag == ""
+                              ? '-'
+                              : widget.weeklyReport.tag,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ],

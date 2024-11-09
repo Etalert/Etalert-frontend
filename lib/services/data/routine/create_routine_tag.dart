@@ -1,27 +1,26 @@
-import 'package:frontend/services/api.dart';
 import 'package:dio/dio.dart';
+import 'package:frontend/services/api.dart';
 
-Future<void> createRoutine(
-    String googleId, String name, int duration, int order) async {
+Future<void> createRoutineTag(
+    String googleId, String name, List<String> routineId) async {
   try {
     final response = await Api.dio.post(
-      '/users/routines',
+      '/users/tags',
       data: {
         "googleId": googleId,
         "name": name,
-        "duration": duration,
-        "order": order,
+        "routineId": routineId,
       },
     );
 
     if (response.statusCode == 201) {
-      print('Routine created successfully');
+      print('Routine tag created successfully');
     } else {
       print(
-          'Failed to create routine: ${response.statusCode} ${response.data}');
-      throw Exception('Failed to create routine');
+          'Failed to create routine tag: ${response.statusCode} ${response.data}');
+      throw Exception('Failed to create routine tag');
     }
-  } on DioError catch (e) {
+  } on DioException catch (e) {
     print('DioError: ${e.message}');
     if (e.response != null) {
       print('Response: ${e.response?.data}');
