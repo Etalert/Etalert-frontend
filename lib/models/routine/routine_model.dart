@@ -2,15 +2,13 @@ class Routine {
   final String id;
   final String name;
   final int duration;
-  final int order;
-  final List<String> days;
+  int order;
 
   Routine({
     required this.id,
     required this.name,
     required this.duration,
     required this.order,
-    required this.days,
   });
 
   // Factory method to create a Routine from JSON
@@ -19,23 +17,13 @@ class Routine {
     final name = json['Name'] ?? json['name'] ?? '';
     final duration = json['Duration'] ?? json['duration'] ?? 0;
     final order = json['Order'] ?? json['order'] ?? 0;
-    final days = _parseDays(json['Days'] ?? json['days']);
 
     return Routine(
       id: id,
       name: name,
       duration: duration,
       order: order,
-      days: days,
     );
-  }
-
-  static List<String> _parseDays(dynamic daysData) {
-    if (daysData == null) return [];
-    if (daysData is List && daysData.isNotEmpty) {
-      return daysData.map((e) => e.toString()).toList();
-    }
-    return [];
   }
 
   // Convert Routine object to JSON
@@ -44,7 +32,6 @@ class Routine {
         'name': name,
         'duration': duration,
         'order': order,
-        'days': days,
       };
 }
 
@@ -53,14 +40,12 @@ extension RoutineCopyWith on Routine {
     String? name,
     int? duration,
     int? order,
-    List<String>? days,
   }) {
     return Routine(
       id: id,
       name: name ?? this.name,
       duration: duration ?? this.duration,
       order: order ?? this.order,
-      days: days ?? this.days,
     );
   }
 }

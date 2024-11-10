@@ -1,16 +1,13 @@
+import 'package:frontend/components/routine_list.dart';
 import 'package:frontend/components/sidebar.dart';
-import 'package:frontend/services/data/routine/create_routine.dart';
-import 'package:intl/intl.dart';
+import 'package:frontend/models/routine/routine_tag.dart';
+import 'package:frontend/services/data/routine/get_routine_tags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/user/user_info.dart';
 import 'package:frontend/models/routine/routine_model.dart';
 import 'package:frontend/services/data/user/get_user_info.dart';
 import 'package:frontend/services/data/user/edit_user_info.dart';
-import 'package:frontend/services/data/routine/get_routine.dart';
-import 'package:go_router/go_router.dart';
-import 'package:frontend/services/data/routine/edit_routine.dart';
-import 'package:frontend/services/data/routine/delete_routine.dart';
 
 class Setting extends ConsumerStatefulWidget {
   final String googleId;
@@ -26,13 +23,14 @@ class _SettingState extends ConsumerState<Setting> {
   bool isLoading = true;
   bool isEditing = false;
   late TextEditingController _nameController;
+  List<RoutineTag> routineTags = [];
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
     _loadUserData();
-    _loadRoutines(); // Load routines
+    _loadRoutineTags();
   }
 
   @override
@@ -63,35 +61,34 @@ class _SettingState extends ConsumerState<Setting> {
     }
   }
 
-  Future<void> _loadRoutines() async {
+  Future<void> _loadRoutineTags() async {
     try {
       setState(() {
         isLoading = true;
       });
 
-      final List<Routine> fetchedRoutines =
-          await getAllRoutines(widget.googleId);
+      final List<RoutineTag> fetchedRoutinetags =
+          await getRoutineTags(widget.googleId);
 
-      for (var routine in fetchedRoutines) {
-        print(
-            'Loaded Routine: ${routine.toJson()}'); // Debug log to confirm data
+      for (var tag in fetchedRoutinetags) {
+        print('Loaded Routine Tag: ${tag.name}');
       }
 
       if (mounted) {
         setState(() {
-          routines = fetchedRoutines;
+          routineTags = fetchedRoutinetags;
           isLoading = false;
         });
       }
     } catch (e) {
-      print('Error in _loadRoutines: $e');
+      print('Error in _loadRoutineTags: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to load routines'),
+            content: Text('Failed to load routine tags'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -114,30 +111,6 @@ class _SettingState extends ConsumerState<Setting> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to update name')),
-      );
-    }
-  }
-
-  Future<void> _editRoutine(String routineId, Routine updatedRoutine) async {
-    try {
-      await editRoutine(
-        routineId,
-        updatedRoutine.name,
-        updatedRoutine.duration,
-        updatedRoutine.order,
-        updatedRoutine.days,
-      );
-
-      // Reload routines to reflect the changes
-      await _loadRoutines();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Routine updated successfully!')),
-      );
-    } catch (e) {
-      print('Update failed: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update routine')),
       );
     }
   }
@@ -260,519 +233,135 @@ class _SettingState extends ConsumerState<Setting> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.add),
-              color: colorScheme.primary,
-              // Inside the IconButton's onPressed callback
-              onPressed: () async {
-                final result = await showDialog<Map<String, dynamic>>(
-                  context: context,
-                  builder: (BuildContext context) {
-                    final TextEditingController nameController =
-                        TextEditingController();
-                    final TextEditingController durationController =
-                        TextEditingController();
-                    Set<String> selectedDays = {}; // Store selected days
-
-                    return StatefulBuilder(
-                      builder: (BuildContext context, StateSetter setState) {
-                        return AlertDialog(
-                          title: const Text('Add Routine'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                controller: nameController,
-                                decoration: const InputDecoration(
-                                    labelText: 'Routine Name'),
-                              ),
-                              const SizedBox(height: 8),
-                              TextField(
-                                controller: durationController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                    labelText: 'Duration (minutes)'),
-                              ),
-                              const SizedBox(height: 16),
-                              Wrap(
-                                spacing: 8,
-                                children: [
-                                  'Monday',
-                                  'Tuesday',
-                                  'Wednesday',
-                                  'Thursday',
-                                  'Friday',
-                                  'Saturday',
-                                  'Sunday'
-                                ].map((day) {
-                                  final bool isSelected =
-                                      selectedDays.contains(day);
-                                  return FilterChip(
-                                    label: Text(day),
-                                    selected: isSelected,
-                                    onSelected: (bool value) {
-                                      setState(() {
-                                        if (value) {
-                                          selectedDays.add(day);
-                                        } else {
-                                          selectedDays.remove(day);
-                                        }
-                                      });
-                                    },
-                                    backgroundColor:
-                                        Colors.grey[300], // Default color
-                                    selectedColor: Theme.of(context)
-                                        .colorScheme
-                                        .primary, // Highlighted color
-                                    labelStyle: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
+                icon: const Icon(Icons.add),
+                color: colorScheme.primary,
+                // Inside the IconButton's onPressed callback
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        actionsAlignment: MainAxisAlignment.center,
+                        title: Container(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          decoration: const BoxDecoration(
+                              border: Border(
+                                  bottom: BorderSide(
+                                      color: Color.fromARGB(255, 228, 228, 228),
+                                      width: 1))),
+                          child: Center(
+                            child: Text(
+                              'Routine',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.grey[500]),
+                            ),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.pop(context), // Cancel button
-                              child: const Text('Cancel'),
+                        ),
+                        actions: <Widget>[
+                          Center(
+                            child: Column(
+                              children: [
+                                // const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextButton(
+                                        child: Text(
+                                          'Add routine',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
+                                        ),
+                                        onPressed: () async {},
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextButton(
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 4),
+                                          child: Text(
+                                            'Add routine tag',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary),
+                                          ),
+                                        ),
+                                        onPressed: () async {},
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            TextButton(
-                              onPressed: () {
-                                if (nameController.text.isNotEmpty &&
-                                    int.tryParse(durationController.text) !=
-                                        null) {
-                                  Navigator.pop(context, {
-                                    'name': nameController.text,
-                                    'duration':
-                                        int.parse(durationController.text),
-                                    'days': selectedDays.toList(),
-                                  });
-                                }
-                              },
-                              child: const Text('Add'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-
-                if (result != null) {
-                  try {
-                    await createRoutine(
-                      widget.googleId,
-                      result['name'],
-                      result['duration'],
-                      routines.length + 1,
-                      result['days'], // Pass selected days
-                    );
-
-                    await _loadRoutines(); // Reload routines
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Routine added successfully!')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to add routine')),
-                    );
-                  }
-                }
-              },
-            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }),
           ],
         ),
         const SizedBox(height: 16),
-        Expanded(
-          child: routines.isEmpty
-              ? const Center(child: Text('No tasks available'))
-              : ReorderableListView.builder(
-                  itemCount: routines.length,
-                  onReorder: (int oldIndex, int newIndex) async {
-                    if (newIndex > oldIndex) newIndex--; // Adjust for removal
-
-                    setState(() {
-                      // Update order locally
-                      final Routine movedRoutine = routines.removeAt(oldIndex);
-                      routines.insert(newIndex, movedRoutine);
-                    });
-
-                    // Update order in the backend
-                    await _updateRoutineOrder();
-                  },
+        routineTags.isEmpty
+            ? const Center(child: Text('No routine tag available'))
+            : Expanded(
+                child: ListView.builder(
+                  itemCount: routineTags.length,
                   itemBuilder: (context, index) {
-                    final routine = routines[index];
-                    return Card(
-                      key: ValueKey(
-                          routine.id), // Ensure each card has a unique key
-                      child: ListTile(
-                        title: Text(
-                          routine.name,
-                          style: TextStyle(color: colorScheme.primary),
-                        ),
-                        subtitle: Text('${routine.duration} mins'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildDayCircles(
-                                routine, colorScheme), // Day circles
-                            IconButton(
-                              icon:
-                                  const Icon(Icons.delete, color: Colors.grey),
-                              onPressed: () => _confirmDelete(context, routine),
-                            ),
-                          ],
-                        ),
-                        onTap: () => _showTaskDialog(context, routine),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _updateRoutineOrder() async {
-    try {
-      for (int i = 0; i < routines.length; i++) {
-        final updatedRoutine = routines[i].copyWith(order: i); // Update order
-
-        await editRoutine(
-          updatedRoutine.id,
-          updatedRoutine.name,
-          updatedRoutine.duration,
-          updatedRoutine.order,
-          updatedRoutine.days,
-        );
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Routine order updated successfully!')),
-      );
-    } catch (e) {
-      print('Failed to update routine order: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update routine order')),
-      );
-    }
-  }
-
-  // Confirm Delete Dialog
-  void _confirmDelete(BuildContext context, Routine routine) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Routine'),
-        content: Text('Are you sure you want to delete "${routine.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await _deleteRoutine(routine.id); // Delete the routine
-              Navigator.pop(context);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-// Delete Routine and Update State
-  Future<void> _deleteRoutine(String routineId) async {
-    print(routineId);
-    try {
-      await deleteRoutine(routineId); // Call API to delete the routine
-      setState(() {
-        routines.removeWhere(
-            (routine) => routine.id == routineId); // Remove locally
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Routine deleted successfully!')),
-      );
-    } catch (e) {
-      print('Delete failed: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete routine')),
-      );
-    }
-  }
-
-// Helper to build day circles
-  Widget _buildDayCircles(Routine routine, ColorScheme colorScheme) {
-    
-    final List<String> routineDays = routine.days;
-    // List of full day names to render the UI in order
-    const daysOfWeek = [
-      'Sunday',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday'
-    ];
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: daysOfWeek.map((day) {
-        // Check if the current day is selected
-        final bool isSelected = routineDays.contains(day);
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          child: CircleAvatar(
-            radius: 10,
-            backgroundColor: isSelected
-                ? colorScheme.primary // Selected day color
-                : colorScheme.onSurface
-                    .withOpacity(0.2), // Unselected day color
-            child: Text(
-              day.substring(0, 1), // First letter of the day
-              style: TextStyle(
-                color: isSelected
-                    ? colorScheme.onPrimary // Text color for selected days
-                    : colorScheme.onSurface, // Text color for unselected days
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  void _showTaskDialog(BuildContext context, Routine routine) {
-    print('Routine passed to dialog: ${routine.toJson()}');
-
-    // Initialize the selected days with the routine's days
-    Set<String> selectedDays = Set<String>.from(routine.days);
-
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // Controllers for editing routine name and duration
-    final TextEditingController nameController =
-        TextEditingController(text: routine.name);
-    final TextEditingController durationController =
-        TextEditingController(text: routine.duration.toString());
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) => Dialog(
-          backgroundColor: colorScheme.surface,
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Top section with label and close button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.edit,
-                          color: colorScheme.onSurface.withOpacity(0.7),
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 200,
-                          child: TextField(
-                            controller: nameController,
-                            style: TextStyle(
-                              color: colorScheme.onSurface.withOpacity(0.7),
-                              fontSize: 20,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: colorScheme.onSurface.withOpacity(0.7),
-                        size: 24,
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 30),
-
-                // Duration input field
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: durationController,
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(
-                          color: colorScheme.primary,
-                          fontSize: 60,
-                          fontWeight: FontWeight.w300,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'mins',
-                      style: TextStyle(
-                        color: colorScheme.onSurface.withOpacity(0.6),
-                        fontSize: 24,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Selected days display
-                Text(
-                  selectedDays.isEmpty
-                      ? 'No days selected'
-                      : selectedDays.join(', '),
-                  style: TextStyle(
-                    color: colorScheme.onSurface.withOpacity(0.7),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Weekday selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                    final String day =
-                        _getDayFromInitial(entry.value, entry.key);
-                    final bool isSelected = selectedDays.contains(day);
-
+                    final routineTag = routineTags[index];
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          // Toggle the day selection
-                          if (isSelected) {
-                            selectedDays.remove(day);
-                          } else {
-                            selectedDays.add(day);
-                          }
-                        });
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return RoutineList(tagId: routineTag.id);
+                            },
+                          ),
+                        );
                       },
                       child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.primaryContainer,
-                          border: Border.all(
-                            color: isSelected
-                                ? colorScheme.primary
-                                : colorScheme.onSurface.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            entry.value,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? colorScheme.onPrimary
-                                  : colorScheme.onSurface,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              width: 0.5,
+                              color: Color.fromARGB(255, 205, 205, 205),
                             ),
                           ),
                         ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 28),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                routineTag.name,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSecondary,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            Icon(Icons.chevron_right_rounded,
+                                color:
+                                    Theme.of(context).colorScheme.onSecondary),
+                          ],
+                        ),
                       ),
                     );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Save button
-                ElevatedButton(
-                  onPressed: () {
-                    final updatedRoutine = Routine(
-                      id: routine.id,
-                      name: nameController.text,
-                      duration: int.tryParse(durationController.text) ??
-                          routine.duration,
-                      order: routine.order,
-                      days: selectedDays.toList(),
-                    );
-
-                    _editRoutine(routine.id, updatedRoutine);
-                    Navigator.pop(context);
                   },
-                  child: const Text('Save'),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
+              ),
+      ],
     );
-  }
-
-  // Helper function to get day order (Monday = 0, Sunday = 6)
-  int _getDayOrder(String day) {
-    final Map<String, int> dayOrder = {
-      'Sunday': 0,
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-      'Saturday': 6,
-    };
-    return dayOrder[day] ?? 0;
-  }
-
-// Helper function to convert initials to full day names
-  String _getDayFromInitial(String initial, int index) {
-    final Map<int, String> dayMap = {
-      0: 'Sunday',
-      1: 'Monday',
-      2: 'Tuesday',
-      3: 'Wednesday',
-      4: 'Thursday',
-      5: 'Friday',
-      6: 'Saturday',
-    };
-    return dayMap[index] ?? 'Monday';
   }
 }

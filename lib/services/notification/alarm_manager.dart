@@ -64,8 +64,8 @@ class AlarmManager {
     await Alarm.set(alarmSettings: alarmSettings);
     _activeAlarms.add(alarmId);
 
-    // Set up a timer to stop the alarm after 15 minutes
-    _alarmTimers[alarmId] = Timer(const Duration(minutes: 15), () {
+    // Set up a timer to stop the alarm after 5 minutes
+    _alarmTimers[alarmId] = Timer(const Duration(minutes: 5), () {
       Alarm.stop(alarmId);
       _alarmTimers.remove(alarmId);
       _activeAlarms.remove(alarmId);
