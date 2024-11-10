@@ -13,6 +13,7 @@ class ScheduleReq {
   final double? destLongtitude;
   final bool isHaveLocation;
   final bool isFirstSchedule;
+  final String? tagId;
   final String recurrence;
   final String transportation;
 
@@ -31,6 +32,7 @@ class ScheduleReq {
     this.destLongtitude,
     required this.isHaveLocation,
     required this.isFirstSchedule,
+    this.tagId,
     required this.recurrence,
     required this.transportation,
   });

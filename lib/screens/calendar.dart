@@ -6,6 +6,7 @@ import 'package:frontend/components/custom_schedule_dialog.dart';
 import 'package:frontend/components/edit_schedule_dialog.dart';
 import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/models/maps/location.dart';
+import 'package:frontend/models/routine/routine_tag.dart';
 import 'package:frontend/models/schedules/schedule_req.dart';
 import 'package:frontend/models/schedules/schedules.dart';
 import 'package:frontend/models/user/user_info.dart';
@@ -530,6 +531,7 @@ class _CalendarState extends ConsumerState<Calendar> {
     double? deslat,
     double? deslng,
     bool isFirstSchedule,
+    RoutineTag? selectedRoutineTag,
     DateTime selectedDay,
     bool isHaveLocation,
     String recurrence,
@@ -543,25 +545,48 @@ class _CalendarState extends ConsumerState<Calendar> {
           deslat != null &&
           deslng != null;
 
-      // Create the ScheduleReq object
-      final req = ScheduleReq(
-        googleId: widget.googleId,
-        name: scheduleName,
-        date: date,
-        startTime: startTime,
-        endTime: endTime,
-        isHaveEndTime: isHaveEndTime,
-        oriName: oriName,
-        oriLatitude: orilat,
-        oriLongtitude: orilng,
-        desName: desName,
-        destLatitude: deslat,
-        destLongtitude: deslng,
-        isHaveLocation: isHaveLocation,
-        isFirstSchedule: isFirstSchedule,
-        recurrence: recurrence,
-        transportation: transportation,
-      );
+      final req;
+
+      if (isFirstSchedule && selectedRoutineTag != null) {
+        req = ScheduleReq(
+          googleId: widget.googleId,
+          name: scheduleName,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+          isHaveEndTime: isHaveEndTime,
+          oriName: oriName,
+          oriLatitude: orilat,
+          oriLongtitude: orilng,
+          desName: desName,
+          destLatitude: deslat,
+          destLongtitude: deslng,
+          isHaveLocation: isHaveLocation,
+          isFirstSchedule: isFirstSchedule,
+          tagId: selectedRoutineTag.id,
+          recurrence: recurrence,
+          transportation: transportation,
+        );
+      } else {
+        req = ScheduleReq(
+          googleId: widget.googleId,
+          name: scheduleName,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+          isHaveEndTime: isHaveEndTime,
+          oriName: oriName,
+          oriLatitude: orilat,
+          oriLongtitude: orilng,
+          desName: desName,
+          destLatitude: deslat,
+          destLongtitude: deslng,
+          isHaveLocation: isHaveLocation,
+          isFirstSchedule: isFirstSchedule,
+          recurrence: recurrence,
+          transportation: transportation,
+        );
+      }
 
       await ref
           .read(scheduleProvider(widget.googleId).notifier)
@@ -1181,8 +1206,7 @@ class _CalendarState extends ConsumerState<Calendar> {
                       _finishSchedule(context, alarmSettings, event),
                   child: isLoading
                       ? const CircularProgressIndicator()
-                      : const Text(
-                          'Finish'),
+                      : const Text('Finish'),
                 ),
               ],
             ),
@@ -1308,6 +1332,7 @@ class _CalendarState extends ConsumerState<Calendar> {
     showDialog(
       context: context,
       builder: (context) => ScheduleDialog(
+        googleId: widget.googleId,
         selectedDay: _selectedDay,
         onSave: (eventDetails) async {
           final taskName = eventDetails['name'];
@@ -1321,6 +1346,7 @@ class _CalendarState extends ConsumerState<Calendar> {
           final isHaveLocation = eventDetails['isHaveLocation'];
           final recurrence = eventDetails['recurrence'] ?? '';
           final transportation = eventDetails['transportation'];
+          final selectedRoutineTag = eventDetails['selectedRoutineTag'];
 
           final scheduledDateTime = DateTime(
             _selectedDay.year,
@@ -1343,6 +1369,7 @@ class _CalendarState extends ConsumerState<Calendar> {
             eventDetails['destinationLatitude'],
             eventDetails['destinationLongitude'],
             isRoutineChecked,
+            selectedRoutineTag,
             _selectedDay,
             isHaveLocation,
             recurrence,

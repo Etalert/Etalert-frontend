@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/maps/location.dart';
+import 'package:frontend/models/routine/routine_tag.dart';
 import 'package:frontend/screens/selectlocation.dart';
 import 'package:frontend/screens/selectoriginlocation.dart';
+import 'package:frontend/services/data/routine/get_routine_tags.dart';
 
 class EnumRecurrence {
   final String value;
@@ -24,11 +26,13 @@ class EnumTransportation {
 }
 
 class ScheduleDialog extends StatefulWidget {
+  final String googleId;
   final DateTime selectedDay;
   final Function(Map<String, dynamic>) onSave;
 
   const ScheduleDialog({
     Key? key,
+    required this.googleId,
     required this.selectedDay,
     required this.onSave,
   }) : super(key: key);
@@ -51,11 +55,22 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
   SelectedLocation destinationLocation = SelectedLocation();
   EnumRecurrence selectedRecurrence = EnumRecurrence.none;
   EnumTransportation selectedTransportation = EnumTransportation.driving;
+  List<RoutineTag> routineTags = [];
+  RoutineTag? selectedRoutineTag;
 
   @override
   void initState() {
     super.initState();
     dateController.text = formatDate(widget.selectedDay);
+    getRoutineTagsByGoogleId(widget.googleId);
+  }
+
+  void getRoutineTagsByGoogleId(String googleId) async {
+    List<RoutineTag> tags = await getRoutineTags(googleId);
+    setState(() {
+      routineTags = tags;
+      print(routineTags);
+    });
   }
 
   String formatDate(DateTime date) {
@@ -599,6 +614,57 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                   ),
                 ],
               ),
+              isChecked
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<RoutineTag>(
+                            value: selectedRoutineTag,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                ),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                ),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                ),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              labelText: 'Routine tag',
+                              labelStyle: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary),
+                            ),
+                            items: routineTags.map((RoutineTag routineTag) {
+                              return DropdownMenuItem<RoutineTag>(
+                                value: routineTag,
+                                child: Text(routineTag.name),
+                              );
+                            }).toList(),
+                            onChanged: (RoutineTag? newValue) {
+                              setState(() {
+                                selectedRoutineTag = newValue;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    )
+                  : Container(),
               const SizedBox(height: 32),
               Center(
                 child: ElevatedButton(
@@ -635,6 +701,7 @@ class _ScheduleDialogState extends State<ScheduleDialog> {
                             ? formatTime(endTimeController.text)
                             : null,
                         'isRoutineChecked': isChecked,
+                        'selectedRoutineTag': selectedRoutineTag,
                         'originLocation': originLocationController.text,
                         'originLatitude':
                             originLocation.selectedLatLng?.latitude,
