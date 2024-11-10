@@ -9,7 +9,7 @@ Future<void> createRoutineTag(
       data: {
         "googleId": googleId,
         "name": name,
-        "routineId": routineId,
+        "routines": routineId,
       },
     );
 

@@ -1,6 +1,8 @@
 import 'package:frontend/components/routine_list.dart';
 import 'package:frontend/components/sidebar.dart';
 import 'package:frontend/models/routine/routine_tag.dart';
+import 'package:frontend/services/data/routine/create_routine_tag.dart';
+import 'package:frontend/services/data/routine/delete_routine_tag.dart';
 import 'package:frontend/services/data/routine/get_routine_tags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -240,68 +242,85 @@ class _SettingState extends ConsumerState<Setting> {
                   showDialog(
                     context: context,
                     builder: (BuildContext context) {
+                      final TextEditingController tagNameController =
+                          TextEditingController();
+
                       return AlertDialog(
-                        actionsAlignment: MainAxisAlignment.center,
-                        title: Container(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          decoration: const BoxDecoration(
-                              border: Border(
-                                  bottom: BorderSide(
-                                      color: Color.fromARGB(255, 228, 228, 228),
-                                      width: 1))),
-                          child: Center(
-                            child: Text(
-                              'Routine',
+                        title: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Text('Add routine tag',
                               style: TextStyle(
-                                  fontSize: 16, color: Colors.grey[500]),
-                            ),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      Theme.of(context).colorScheme.primary)),
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: tagNameController,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer),
+                                      borderRadius: BorderRadius.circular(8.0)),
+                                  labelText: 'Name',
+                                  labelStyle: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontSize: 14),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        actions: <Widget>[
-                          Center(
-                            child: Column(
-                              children: [
-                                // const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextButton(
-                                        child: Text(
-                                          'Add routine',
-                                          style: TextStyle(
-                                              fontSize: 16,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary),
-                                        ),
-                                        onPressed: () async {},
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextButton(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 4),
-                                          child: Text(
-                                            'Add routine tag',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary),
-                                          ),
-                                        ),
-                                        onPressed: () async {},
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey[600]),
                             ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final String name = tagNameController.text;
+
+                              await createRoutineTag(widget.googleId, name, []);
+
+                              Navigator.of(context).pop();
+
+                              setState(() {
+                                isLoading = true;
+                              });
+
+                              _loadRoutineTags();
+
+                              setState(() {
+                                isLoading = false;
+                              });
+                            },
+                            child: const Text('Add'),
                           ),
                         ],
                       );
@@ -323,9 +342,62 @@ class _SettingState extends ConsumerState<Setting> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) {
-                              return RoutineList(tagId: routineTag.id);
+                              return RoutineList(
+                                googleId: widget.googleId,
+                                tagId: routineTag.id,
+                                tagName: routineTag.name,
+                              );
                             },
                           ),
+                        );
+                      },
+                      onLongPress: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(
+                                'Delete routine tag',
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              content: Text(
+                                  'Are you sure you want to delete "${routineTag.name}"?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.of(context).pop();
+
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+
+                                    await deleteRoutineTag(routineTag.id);
+
+                                    _loadRoutineTags();
+
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                  },
+                                  child: Text('Delete',
+                                      style: TextStyle(color: Colors.red[600])),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       },
                       child: Container(
