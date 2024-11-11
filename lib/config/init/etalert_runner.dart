@@ -47,6 +47,14 @@ class _ETAlertState extends ConsumerState<ETAlert> {
     websocketChannel.stream.listen((message) {
       print(message);
       final Map<String, dynamic> data = json.decode(message);
+
+      // Update the schedule data when a WebSocket message is received
+      if (data.containsKey('scheduleUpdate') && AuthState.googleId != null) {
+        final scheduleData = data['scheduleUpdate'];
+        ref
+            .read(scheduleProvider(AuthState.googleId!).notifier)
+            .updateScheduleFromData(scheduleData);
+      }
       print('Received data: $data');
       ref
           .read(webSocketStateProvider.notifier)
@@ -68,16 +76,6 @@ class _ETAlertState extends ConsumerState<ETAlert> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<WebSocketState>(webSocketStateProvider, (previous, next) {
-      final data = next.data;
-
-      // Check if data contains schedule information to update
-      if (data.containsKey('scheduleUpdate') && AuthState.googleId != null) {
-        ref
-            .read(scheduleProvider(AuthState.googleId!).notifier)
-            .updateScheduleFromData(data['scheduleUpdate']);
-      }
-    });
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         ColorScheme lightScheme;
