@@ -12,7 +12,6 @@ This is the **frontend** of the ETAlert system, developed using **Flutter** and 
   - [Installation](#installation)
   - [Running the Project](#running-the-project)
 - [Backend Repository](#backend-repository)
-- [API Key and URLs](#api-key-and-urls)
 - [Folder Structure](#folder-structure)
 
 ---
@@ -55,10 +54,6 @@ git clone https://github.com/Erxical/etalert-backend.git
 To set up the environment variables, create a `.env` file in the root directory of the **frontend** project:
 
 ```plaintext
-BASE_URL = "https://etalert.erxin.live"
-WEBSOCKET_URL = "wss://etalert.erxin.live/ws"
-
-# For local development:
 # BASE_URL = "http://localhost:3000"
 # WEBSOCKET_URL = "ws://localhost:3000/ws"
 ```
@@ -98,17 +93,6 @@ To run the backend server, refer to the **etalert-backend** repository:
 Repository link: [etalert-backend](https://github.com/Erxical/etalert-backend.git)
 
 Follow the backend installation and setup steps mentioned in the repository's README.
-
----
-
-## API Key and URLs
-Ensure your `.env` file contains the correct API and WebSocket URLs for production and development environments:
-
-| Variable          | Production URL                       | Local Development URL       |
-|-------------------|--------------------------------------|-----------------------------|
-| `BASE_URL`        | `https://etalert.erxin.live`         | `http://localhost:3000`     |
-| `WEBSOCKET_URL`   | `wss://etalert.erxin.live/ws`        | `ws://localhost:3000/ws`    |
-| `API_KEY`         | Google Distance Matrix API Key       | Replace with your own key   |
 
 ---
 
