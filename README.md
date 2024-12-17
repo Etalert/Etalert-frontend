@@ -54,8 +54,8 @@ git clone https://github.com/Erxical/etalert-backend.git
 To set up the environment variables, create a `.env` file in the root directory of the **frontend** project:
 
 ```plaintext
-# BASE_URL = "http://localhost:3000"
-# WEBSOCKET_URL = "ws://localhost:3000/ws"
+BASE_URL = "http://localhost:3000"
+WEBSOCKET_URL = "ws://localhost:3000/ws"
 ```
 
 Then, set up the file to contain the API keys:
@@ -64,7 +64,7 @@ Then, set up the file to contain the API keys:
 - Choose the project or create one
 - On **Project Overview** tab, click on **Add app**
 - Create Apple App using app bundle ID from XCode then **Register**
-- Download GoogleService-Info.plist and put it at the root level of your project
+- Download GoogleService-Info.plist and put it at the folder /ios/Runner/ of your project
 ---
 
 ### Installation
