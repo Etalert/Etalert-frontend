@@ -61,13 +61,15 @@ WEBSOCKET_URL = "wss://etalert.erxin.live/ws"
 # For local development:
 # BASE_URL = "http://localhost:3000"
 # WEBSOCKET_URL = "ws://localhost:3000/ws"
-
-// Google Distance Matrix API Key
-API_KEY=<PUT API_KEY HERE>
 ```
 
-- Refer to [etalert-backend](https://github.com/Erxical/etalert-backend.git) on how to create API_KEY
-
+Then, set up the file to contain the API keys:
+- Go to [Firebase Cloud Console](https://console.firebase.google.com/)
+- Sign in to your account
+- Choose the project or create one
+- On **Project Overview** tab, click on **Add app**
+- Create Apple App using app bundle ID from XCode then **Register**
+- Download GoogleService-Info.plist and put it at the root level of your project
 ---
 
 ### Installation
